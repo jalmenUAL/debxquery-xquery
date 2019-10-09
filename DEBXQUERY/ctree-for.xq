@@ -1,6 +1,6 @@
-(: QUANTIFIER, (DOC, COLLECTION), NESTED FOR, ARRAYS, IF THEN ELSE, ORDER BY, UNION, LOCAL FUNCTIONS, WHERE EVAL, REPEATED VARS :)
+(: ROOT?,QUANTIFIER, (DOC, COLLECTION), ARRAYS, IF THEN ELSE, ORDER BY, UNION, LOCAL FUNCTIONS, WHERE EVAL :)
 
-declare function local:For($for,$where,$items,$context)
+declare function local:For($for,$items,$context)
 {
   let $ncontext := 
   (
@@ -10,17 +10,15 @@ declare function local:For($for,$where,$items,$context)
   <for><var>{$var}</var><bound>{$path,
   <values>{
   for $x in 
-  local:exp($path,$context)//value/(*|text())
-  where local:Cond($x,$var,$where,$context)=true()
-  return <value>{$x}</value>
+  local:exp($path,$context)//value/(*|text()) return <value>{$x}</value>
   }</values>
   }</bound></for>
   )
   return
-  $ncontext union local:QueryPlan($items,$ncontext union $context)
+  $ncontext union local:QueryPlan($items,$context union $ncontext)
 };
 
-declare function local:Let($let,$where,$items,$context)
+declare function local:Let($let,$items,$context)
 {
   let $ncontext := 
   (
@@ -29,10 +27,7 @@ declare function local:Let($let,$where,$items,$context)
   return
   <let><var>{$var}</var><bound>{$path,
   <values>{
-  let $x := 
-  local:exp($path,$context)//value/(*|text())
-  where local:Cond($x,$var,$where,$context)=true()
-  return <value>{$x}</value>
+  local:exp($path,$context)//value
   }</values>
   }</bound></let>
   )
@@ -40,35 +35,11 @@ declare function local:Let($let,$where,$items,$context)
   $ncontext union local:QueryPlan($items,$context union $ncontext)
 };
 
-
-declare function local:Cond($value,$var,$where,$context)
-{
-   if (empty($where)) then true()
-   else
-   if (empty($where//VarRef[Var/@name=data($var/@name)])) then 
-   let $path := "declare variable $xml external; $xml/" || "[" || local:path(<CachedFilter>{<VarRef>{$var}</VarRef>,$where/*}</CachedFilter>,$context) || "]"
-   
-   
-   return xquery:eval($path,map{'xml': $value})
-   else
-   
-   copy $c := $where
-        modify(
-          for $x in $c//VarRef[Var/@name=data($var/@name)]
-          return
-          replace node $x  with ())
-  return 
-  let $path := "declare variable $xml external; $xml/" || "[" ||
-  local:path(<CachedFilter>{<VarRef>{$var}</VarRef>,$c/*}</CachedFilter>,$context) || "]"
-  return xquery:eval($path,map{'xml': $value})
-};
-
-
 declare function local:IterPath($query,$context)
 {
   if ($query/Root) then 
   let $path :=  
-                 "root()"+fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
+                 "/."+fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
                     function($x,$y){$x || "/" || $y})
   return <value>{xquery:eval($path)}</value>
   else
@@ -96,7 +67,9 @@ declare function local:CachedPath($query,$context)
                   return <value>{xquery:eval($path,map { 'xml': $value })}</value>
   else 
   let $var := $query/VarRef/Var/@name
-   
+  return
+  if (name($context[var/Var/@name=data($var)])="for") 
+  then
   let $path := "declare variable $xml external; $xml" || 
                  fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
                   function($x,$y){$x || "/" || $y})
@@ -104,13 +77,29 @@ declare function local:CachedPath($query,$context)
   let $as := $context[var/Var/@name=data($var)]/*/values/value/(*|text())
   for $value in xquery:eval($path,map { 'xml': $as })
   return 
-  <value>{data($value)}</value>
+  <value>{$value}</value>
+  else
+  if (name($context[var/Var/@name=data($var)])="let") 
+  then
+  let $path := "declare variable $xml external; $xml" || 
+                 fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
+                  function($x,$y){$x || "/" || $y})
+                
+  (:let $as := $context[var/Var/@name=data($var)]/*/values/value/(*|text())
+  return 
+  <value>{xquery:eval($path,map { 'xml': $as })}</value>:)
+   let $as := $context[var/Var/@name=data($var)]/*/values/value/(*|text())
+  for $value in xquery:eval($path,map { 'xml': $as })
+  return 
+  <value>{$value}</value>
+  else <errorCachedPath>{$query}</errorCachedPath>
 };
  
 declare function local:path($step,$context)
 {
   
-    if (name($step)="Root") then "root()" 
+    if (name($step)="Root") then "/." 
+
     else
     if (name($step)="CachedPath") 
           then fold-left(for-each($step/*,function($x){local:path($x,$context)}),".",
@@ -129,10 +118,18 @@ declare function local:path($step,$context)
    else
    if (name($step)="VarRef") then 
              let $varn := $step/Var/@name
-             return 
-             fold-left(for-each($context[var/Var/@name=data($varn)]//value,function($x){local:path($x,$context)}),".",
+             return
+             if (name($context[var/Var/@name=data($varn)])="for")
+             then
+             let $for := 
+             fold-left(for-each($context[var/Var/@name=data($varn)]/bound/*,function($x){local:path($x,$context)}),".",
                   function($x,$y){$x || "/" || $y})
-                       
+             return "(for $x in " || $for || " return $x)"              
+             else 
+             let $let := 
+             fold-left(for-each($context[var/Var/@name=data($varn)]/bound/*,function($x){local:path($x,$context)}),".",
+                  function($x,$y){$x || "/" || $y})
+             return $let          
     else
     if (substring(name($step),1,2)="Fn") then
              let $count := count($step/*)
@@ -150,30 +147,39 @@ declare function local:path($step,$context)
                 else $step/@axis || "::" || $step/@test
   else 
   if (name($step)="CachedStep") then "[" || $step/@axis || "::" || $step/@test || "]"  
-  
-  else if (name($step)="CmpG") then
-              let $cond1 := local:path(($step/*)[1],$context)
-                let $cond2 := local:path(($step/*)[2],$context)
-    return "(" || $cond1 || $step/@op || $cond2 || ")"
-    
-  else if (name($step)="And") then
-           "(" || local:path(($step/*)[1],$context) || " and " ||   local:path(($step/*)[2],$context) || ")"
-           
-   else if (name($step)="Or") then
-           "(" || local:path(($step/*)[1],$context) || " or " ||   local:path(($step/*)[2],$context) || ")"        
-  
   else if ($step/@type="xs:string") then  "'" || data($step/@value)|| "'"
              else
              data($step/@value)
-             
-             
-             
 }; 
  
  
+declare function local:Where($q,$items,$context)
+{
+  <Where>{
+  for $w in $q/* return local:WhereItem($w,$context)
+  }</Where> union local:QueryPlan($items,$context)
+};
+
+declare function local:WhereItem($q,$context)
+{  
+  if (name($q)="CmpG") then 
+       element {"CmpG"} {$q/@*,for $CmpG in $q/* return local:exp($CmpG,$context)} 
+       else 
+       if (name($q)="And") then  
+             <And>{for $And in $q/* return local:WhereItem($And,$context)}</And>
+             else 
+             if (name($q)="Or") then 
+                      <Or>{for $Or in $q/* return local:WhereItem($Or,$context)}</Or>
+                      else <errorWhere/>                        
+};
+
+
  
+
+
 declare function local:exp($query,$context)
 {
+  
   
   if (name($query)="CachedPath") then 
              <CachedPath>{
@@ -228,9 +234,9 @@ declare function local:exp($query,$context)
              <values><value>{apply($f,$args)}</value></values>
              }   
              else 
-              
-             element {name($query)} {$query/*,$query/@*,
-             <values><value>{data($query/@value)}</value></values>}
+             if ($query/@type="xs:string") then  <values><value>{"'" || data($query/@value)|| "'"}</value></values> 
+             else
+             <values><value>{data($query/@value)}</value></values>  
                        
 };
 
@@ -260,21 +266,6 @@ declare function local:CachedFilter($query,$context)
 };
 
 
-declare function local:cross($result)
-{
-let $head := head($result)
-let $tail :=  tail($result/*[not(name(.)="For") and not(name(.)="Let") and not(name(.)="Where")])   
-let $max := max(for $item in $tail return count($item/values/value))
-return 
-<values>{
-for $i in 1 to $max return 
-<value>
-<CElem>{$head/*,for $item in $tail return 
-element {name($item)} {($item/*[not(name(.)="values")],$item/values/value[$i])}
-}</CElem>
-</value>
-}</values>
-};
 
 
 declare function local:CElem($query,$items,$context)
@@ -289,8 +280,8 @@ declare function local:GFLWOR($query,$items,$context)
 
 declare function local:CAttr($query,$items,$context)
 { 
-  (<CAttr>{
-   local:QueryPlan($query/*,$context),local:QueryPlan($query/*,$context)//values
+  (<CAttr>{$query/QNm, 
+   local:QueryPlan($query/*,$context)
    }
    </CAttr>) union local:QueryPlan($items,$context)
    
@@ -302,30 +293,29 @@ declare function local:QueryPlan($query,$context)
   if (name(head($query))="GFLWOR") then 
   local:GFLWOR(head($query),tail($query),$context)
   else if (name(head($query))="For") then 
-  local:For(head($query),tail($query)[name(.)="Where"],tail($query),$context)
+  local:For(head($query),tail($query),$context)
   else if (name(head($query))="Let") then 
-  local:Let(head($query),tail($query)[name(.)="Where"],tail($query),$context)
+  local:Let(head($query),tail($query),$context)
   else if (name(head($query))="CElem") then 
-  local:cross(local:CElem(head($query),tail($query),$context))
+  local:CElem(head($query),tail($query),$context)
   else if (name(head($query))="CAttr") then 
   local:CAttr(head($query),tail($query),$context)
    else if (name(head($query))="Where") then 
-   local:QueryPlan(tail($query),$context)
+  local:Where(head($query),tail($query),$context)
   else if (name(head($query))="QNm") then 
   local:QueryPlan(tail($query),$context)
   else if (head($query)) then
-  (local:exp(head($query),$context) 
-  union local:QueryPlan(tail($query),$context))
+  (local:exp(head($query),$context) union local:QueryPlan(tail($query),$context))
   else ()
 };
 
 declare function local:GFLWORitems($items,$context)
 {
-  if (name(head($items))="For") then local:For(head($items),tail($items)[name(.)="Where"],tail($items),$context)
-                   else if (name(head($items))="Let") then local:Let(head($items),tail($items)[name(.)="Where"],tail($items),$context)
+  if (name(head($items))="For") then local:For(head($items),tail($items),$context)
+                   else if (name(head($items))="Let") then local:Let(head($items),tail($items),$context)
                    else  
-                   
-                   if (name(head($items))="CElem") then local:CElem(head($items),tail($items),$context)     
+                   if (name(head($items))="Where") then  local:Where(head($items),tail($items),$context)
+                   else if (name(head($items))="CElem") then local:CElem(head($items),tail($items),$context)     
                    else <errorGLWORitems/>   
 };
 
@@ -334,8 +324,8 @@ let $query :=
 xquery:parse("
 <bib>
  {
-  for $b in db:open('bstore1')/bib/book  
-  where $b/publisher = 'Addison-Wesley' and $b/@year > 1993
+  for $b in db:open('bstore1')/bib/book
+  where $b/publisher = 'Addison-Wesley' and $b/@year > 1991
   return
     <book year='{ $b/@year }'>
      { $b/title }
@@ -343,6 +333,6 @@ xquery:parse("
  }
 </bib> 
   ")
-return local:QueryPlan($query/QueryPlan/*,())
+return local:QueryPlan($query/QueryPlan/*,()) 
 
  
