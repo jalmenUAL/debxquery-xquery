@@ -1,4 +1,4 @@
-(: QUANTIFIER, (DOC, COLLECTION), NESTED FOR, ARRAYS, IF THEN ELSE, ORDER BY, UNION, LOCAL FUNCTIONS, WHERE EVAL, REPEATED VARS :)
+(: ARRAYS, IF THEN ELSE, ORDER BY, UNION, LOCAL FUNCTIONS  :)
 
 declare function local:For($for,$where,$items,$context)
 {
@@ -46,9 +46,8 @@ declare function local:Cond($value,$var,$where,$context)
    if (empty($where)) then true()
    else
    if (empty($where//VarRef[Var/@name=data($var/@name)])) then 
-   let $path := "declare variable $xml external; $xml/" || "[" || local:path(<CachedFilter>{<VarRef>{$var}</VarRef>,$where/*}</CachedFilter>,$context) || "]"
-   
-   
+   let $path := "declare variable $xml external; $xml/" || 
+   "[" || local:path(<CachedFilter>{<VarRef>{$var}</VarRef>,$where/*}</CachedFilter>,$context) || "]"
    return xquery:eval($path,map{'xml': $value})
    else
    
@@ -77,11 +76,38 @@ declare function local:IterPath($query,$context)
                  fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
                     function($x,$y){$x || "/" || $y})
   return <value>{xquery:eval($path)}</value>
+  else
+  if ($query/FnCollection) then
+            let $path :=  
+                 fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
+                    function($x,$y){$x || "/" || $y})
+  return <value>{xquery:eval($path)}</value>
+  else
+  if ($query/FnDoc) then
+            let $path :=  
+                 fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
+                    function($x,$y){$x || "/" || $y})
+  return <value>{xquery:eval($path)}</value>
+  
   else <errorIterPath/>
 };
 
 declare function local:CachedPath($query,$context)
 { 
+  
+  if ($query/FnDoc) then
+                  let $path := "doc('" || data($query/FnDoc/Str/@value) || "')"  
+                  || fold-left(for-each(tail($query/*),function($x){local:path($x,$context)}),"",
+                  function($x,$y){$x || "/" || $y})
+  return <value>{xquery:eval($path)}</value>
+  else
+  if ($query/FnCollection) then
+                  let $path := "doc('" || data($query/FnCollection/Str/@value) || "')"  
+                  || fold-left(for-each(tail($query/*),function($x){local:path($x,$context)}),"",
+                  function($x,$y){$x || "/" || $y})
+  return <value>{xquery:eval($path)}</value>
+  else
+
   if ($query/DbOpen) then
                   let $path := "db:open('" || data($query/DbOpen/Str/@value) || "')"  
                   || fold-left(for-each(tail($query/*),function($x){local:path($x,$context)}),"",
@@ -101,7 +127,7 @@ declare function local:CachedPath($query,$context)
                  fold-left(for-each($query/*,function($x){local:path($x,$context)}),"",
                   function($x,$y){$x || "/" || $y})
                   
-  let $as := $context[var/Var/@name=data($var)]/*/values/value/(*|text())
+  let $as := $context[var/Var/@name=data($var)][1]/*/values/value/(*|text())
   for $value in xquery:eval($path,map { 'xml': $as })
   return 
   <value>{data($value)}</value>
@@ -127,10 +153,16 @@ declare function local:path($step,$context)
    if (name($step)="DbOpen") then 
             "db:open('" || data($step/Str/@value) || "')"
    else
+   if (name($step)="FnDoc") then 
+            "doc('" || data($step/Str/@value) || "')"
+   else
+    if (name($step)="FnCollection") then 
+            "collection('" || data($step/Str/@value) || "')"
+   else
    if (name($step)="VarRef") then 
              let $varn := $step/Var/@name
              return 
-             fold-left(for-each($context[var/Var/@name=data($varn)]//value,function($x){local:path($x,$context)}),".",
+             fold-left(for-each($context[var/Var/@name=data($varn)][1]/*/values/value,function($x){local:path($x,$context)}),".",
                   function($x,$y){$x || "/" || $y})
                        
     else
@@ -207,15 +239,38 @@ declare function local:exp($query,$context)
              <values>{<value><root>{xquery:eval($path)}</root></value>
              }</values>
              }</DbOpen> else
+             if (name($query)="FnDoc") then 
+             let $path := "doc('" || data($query/Str/@value) || "')"
+             return
+             <FnDoc>{
+             $query/*,
+             <values>{<value><root>{xquery:eval($path)}</root></value>
+             }</values>
+             }</FnDoc> else
+             if (name($query)="FnCollection") then 
+             let $path := "collection('" || data($query/Str/@value) || "')"
+             return
+             <FnCollection>{
+             $query/*,
+             <values>{<value><root>{xquery:eval($path)}</root></value>
+             }</values>
+             }</FnCollection> else
              if (name($query)="VarRef") then 
              let $varn := $query/Var/@name
              return
              <VarRef>{
              $query/*,
              <values>{
-             $context[var/Var/@name=data($varn)]/*/values/value
+             $context[var/Var/@name=data($varn)][1]/*/values/value
              }</values>
              }</VarRef> 
+             else
+             if (name($query)="GFLWOR") then   
+             <GFLWOR>{  
+             <values>{
+             local:GFLWOR($query,(),$context)/*/values/value
+             }</values>
+             }</GFLWOR>
              else
              if (substring(name($query),1,2)="Fn") then 
              let $count := count($query/*)
@@ -228,7 +283,6 @@ declare function local:exp($query,$context)
              <values><value>{apply($f,$args)}</value></values>
              }   
              else 
-              
              element {name($query)} {$query/*,$query/@*,
              <values><value>{data($query/@value)}</value></values>}
                        
@@ -239,12 +293,41 @@ declare function local:CachedFilter($query,$context)
 {
   let $exp := ($query/*)[1]
   let $filter := ($query/*)[2]
-  return if (name($filter)="CachedPath") 
+  return 
+  if (name($filter)="CachedPath") 
   then
-  for $vexp in local:exp(<CachedPath>{$exp,$filter/*}</CachedPath>,$context)//value/(*|text())
+  for $vexp in 
+  local:exp(<CachedPath>{$exp,$filter/*}</CachedPath>,$context)//value/(*|text())
   return
   <value>{$vexp}</value>
-  else let $op := data($filter/@op)
+  else 
+  let $varsome :=  ($filter/GFLWOR/*)[1]/Var
+  return
+  if (name($filter)="Quantifier") 
+  then  
+  copy $c := ($filter/GFLWOR/*)[2]
+        modify(
+        for $x in $c//VarRef[Var/@name=data($varsome/@name)]
+        return
+        replace node $x  with ($filter/GFLWOR/*)[1]/CachedPath/*
+              )
+  return 
+  if ($filter/@type="some") then 
+     local:exp(<CachedFilter>{$exp,$c}</CachedFilter>,$context)
+     else 
+      local:exp(<CachedFilter>{$exp,
+      <FnNot><Quantifier type="some"><GFLWOR>{($filter/GFLWOR/*)[1]}<FnNot>{($filter/GFLWOR/*)[2]}</FnNot></GFLWOR></Quantifier>
+      </FnNot>}</CachedFilter>,$context)
+     
+  else 
+  if (name($filter)="FnNot") then 
+  let $arg := $filter/*
+  for $vexp in local:exp($exp,$context)//value/(*|text())  
+  where not(some $c in local:exp(<CachedFilter>{$exp,$arg}</CachedFilter>,$context)//value/(*|text()) satisfies $c=$vexp) 
+  return <value>{$vexp}</value>
+  else
+  if (name($filter)="GmpG") then
+  let $op := data($filter/@op)
        let $arg1 := ($filter/*)[1]
        let $arg2 := ($filter/*)[2] 
        for $vexp in local:exp($exp,$context)//value/(*|text())
@@ -256,12 +339,13 @@ declare function local:CachedFilter($query,$context)
        let $vlet := xquery:eval($let,map { 'xml1': $vexp , 'xml2' : $vexp })
        where $vlet
        return <value>{$vexp}</value>
-
+     else   <value>{(local:exp($exp,$context)//values/value/(*|text()))[local:exp($filter,$context)//value/(*|text())]}</value>
 };
 
 
 declare function local:cross($result)
 {
+if (count($result)=1) then $result else  
 let $head := head($result)
 let $tail :=  tail($result/*[not(name(.)="For") and not(name(.)="Let") and not(name(.)="Where")])   
 let $max := max(for $item in $tail return count($item/values/value))
@@ -290,7 +374,7 @@ declare function local:GFLWOR($query,$items,$context)
 declare function local:CAttr($query,$items,$context)
 { 
   (<CAttr>{
-   local:QueryPlan($query/*,$context),local:QueryPlan($query/*,$context)//values
+   local:QueryPlan($query/*,$context),local:QueryPlan($query/*,$context)/*/values
    }
    </CAttr>) union local:QueryPlan($items,$context)
    
@@ -334,14 +418,13 @@ let $query :=
 xquery:parse("
 <bib>
  {
-  for $b in db:open('bstore1')/bib/book  
-  where $b/publisher = 'Addison-Wesley' and $b/@year > 1993
-  return
-    <book year='{ $b/@year }'>
-     { $b/title }
-    </book>
+  
+  let $a := db:open('bstore1')/bib/(book | title)
+  return $a
+   
+   
  }
-</bib> 
+</bib>
   ")
 return local:QueryPlan($query/QueryPlan/*,())
 
