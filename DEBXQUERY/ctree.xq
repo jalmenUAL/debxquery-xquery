@@ -1,4 +1,4 @@
-(: ARRAYS, IF THEN ELSE, ORDER BY, UNION, LOCAL FUNCTIONS  :)
+(: IF THEN ELSE, ORDER BY, UNION, LOCAL FUNCTIONS  :)
 
 declare function local:For($for,$where,$items,$context)
 {
@@ -102,7 +102,7 @@ declare function local:CachedPath($query,$context)
   return <value>{xquery:eval($path)}</value>
   else
   if ($query/FnCollection) then
-                  let $path := "doc('" || data($query/FnCollection/Str/@value) || "')"  
+                  let $path := "collection('" || data($query/FnCollection/Str/@value) || "')"  
                   || fold-left(for-each(tail($query/*),function($x){local:path($x,$context)}),"",
                   function($x,$y){$x || "/" || $y})
   return <value>{xquery:eval($path)}</value>
@@ -281,7 +281,23 @@ declare function local:exp($query,$context)
              element {name($query)} {
              $query/*, 
              <values><value>{apply($f,$args)}</value></values>
-             }   
+             }      
+             (:else
+             if (name($query)="GmpG") then
+             let $op := data($query/@op)
+             let $arg1 := ($query/*)[1]
+             let $arg2 := ($query/*)[2] 
+            
+             let $let := " 
+              let $ls := " || fold-left(for-each($arg1,function($x){local:path($x,$context)}),"",
+                  function($x,$y){$x || "/" || $y}) || 
+             " let $rs := " || fold-left(for-each($arg2,function($x){local:path($x,$context)}),"",
+                  function($x,$y){$x || "/" || $y}) || " return $ls " || $op || " $rs"
+             let $vlet := xquery:eval($let)
+             
+             return <values><value>{$vlet}</value></values>:)
+             else
+             if (name($query)="Empty") then element {name($query)} {<values><value>()</value></values>}
              else 
              element {name($query)} {$query/*,$query/@*,
              <values><value>{data($query/@value)}</value></values>}
@@ -339,7 +355,7 @@ declare function local:CachedFilter($query,$context)
        let $vlet := xquery:eval($let,map { 'xml1': $vexp , 'xml2' : $vexp })
        where $vlet
        return <value>{$vexp}</value>
-     else   <value>{(local:exp($exp,$context)//values/value/(*|text()))[local:exp($filter,$context)//value/(*|text())]}</value>
+     else   <value>{(local:exp($exp,$context)//values/value/(*|text()))[xs:integer(local:exp($filter,$context)//value/(*|text()))]}</value>
 };
 
 
@@ -380,6 +396,7 @@ declare function local:CAttr($query,$items,$context)
    
 };
 
+ 
 declare function local:QueryPlan($query,$context)
 { 
   
@@ -416,15 +433,19 @@ declare function local:GFLWORitems($items,$context)
  
 let $query :=
 xquery:parse("
-<bib>
- {
-  
-  let $a := db:open('bstore1')/bib/(book | title)
-  return $a
-   
-   
- }
-</bib>
+<books-with-prices>
+  {
+    for $b in db:open('bstore1')//book,
+        $a in db:open('bstore2')//entry
+    where $b/title = $a/title
+    return
+        <book-with-prices>
+            { $b/title }
+            <price-bstore2>{ $a/price/text() }</price-bstore2>
+            <price-bstore1>{ $b/price/text() }</price-bstore1>
+        </book-with-prices>
+  }
+</books-with-prices>
   ")
 return local:QueryPlan($query/QueryPlan/*,())
 
