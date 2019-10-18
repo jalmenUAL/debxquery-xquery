@@ -1,4 +1,4 @@
-(: ORDER BY, LOCAL FUNCTIONS, NESTED EXPRESSIONS, AGGREGATORS, XML DOCS  :)
+(: UNION OPERATOR, ORDER BY, LOCAL FUNCTIONS, NESTED EXPRESSIONS, AGGREGATORS, XML DOCS  :)
 
 declare function local:For($for,$where,$return,$context)
 {
@@ -14,9 +14,11 @@ declare function local:For($for,$where,$return,$context)
   where local:Where($where,
   <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context) 
   return
-  local:Return($return, 
-  <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)}  
-  </values></For>
+  <value> 
+  {local:Return($return, 
+  <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)}
+  </value> 
+  }</values></For>
   
 };
 
@@ -31,19 +33,21 @@ declare function local:Let($let,$where,$return,$context)
   where local:Where($where,
   <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)
   return 
+  <value>{
   local:Return($return, 
-  <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)  
+  <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)
+  }</value>
   }</values></Let>
 };
 
 declare function local:exps($query,$context)
 {
- <values>{for $exp in $query return local:exp($exp,$context)
+ <values>{for $exp in $query return <value>{local:exp($exp,$context)}</value>
 }</values>};
 
 declare function local:exp($exp,$context)
 {
-   if (name($exp)="GFLWOR") then  local:GFLWOR($exp,$context) 
+   if (name($exp)="GFLWOR") then local:GFLWOR($exp,$context)
    else 
    if (name($exp)="CElem") then local:CElem($exp,$context)
    else 
@@ -62,13 +66,14 @@ declare function local:exp($exp,$context)
 };
 
  
- 
 declare function local:Quantifier($quan,$context)
-{  
-  if ($quan/@type="some") then let $res := local:GFLWOR($quan/*,$context)//values/(*|text())
+{
+  
+  if ($quan/@type="some") then let $res := local:GFLWOR($quan/*,$context)//value/(*|text())
                                return some $r in $res satisfies $r=true()
-  else let $res := local:GFLWOR($quan/*,$context)//values/(*|text())
-                   return every $r in $res satisfies $r=true() 
+  else let $res := local:GFLWOR($quan/*,$context)//value/(*|text())
+                   return every $r in $res satisfies $r=true()
+  
 };
  
 
@@ -87,7 +92,7 @@ declare function local:Return($return,$context)
 };
 
 declare function local:Path($step,$context)
-{  
+{
    if (name($step)="Root") then "root()" 
    else
    if (name($step)="DbOpen") then 
@@ -105,63 +110,63 @@ declare function local:Path($step,$context)
              $context[name/Var/@name=data($varn)][1]/path
              let $position := $context[name/Var/@name=data($varn)][1]/position/text()
              return 
-             if ($position=0) then local:exp($path/*,$context)
-             else local:exp($path/*,$context)  || "[" || $position || "]"
+             if ($position=0) then local:Path($path/*,$context)
+             else "(" || local:Path($path/*,$context) || ")" || "[" || $position || "]"
                        
     else
     if (name($step)="CachedPath") 
-          then string-join(for-each($step/*,function($x){local:exp($x,$context)}),"/")
+          then string-join(for-each($step/*,function($x){local:Path($x,$context)}),"/")
                   
    else
    if (name($step)="IterPath") 
-          then string-join(for-each($step/*,function($x){local:exp($x,$context)}),"/")
+          then string-join(for-each($step/*,function($x){local:Path($x,$context)}),"/")
         
    else 
    if (name($step)="MixedPath")
           then let $head := $step/*[not(name(.)="Union")],
                    $union := $step/Union
-                   return local:exp(<CachedPath>{$head}</CachedPath>,$context) || "/(" || 
-                   string-join(for-each($union/*,function($x){local:exp($x,$context)}),"|") || ")"                    
+                   return local:Path(<CachedPath>{$head}</CachedPath>,$context) || "/(" || 
+                   string-join(for-each($union/*,function($x){local:Path($x,$context)}),"|") || ")"                    
    else           
    if (name($step)="CachedFilter") 
           then 
-          local:exp(head($step/*),$context) || "[" ||
-          string-join(for-each(tail($step/*),function($x){local:exp($x,$context)}),"/")
+          local:Path(head($step/*),$context) || "[" ||
+          string-join(for-each(tail($step/*),function($x){local:Path($x,$context)}),"/")
                    || "]"
     else
    if (name($step)="IterStep") then 
                 if ($step/CmpG) then 
-                let $cond1 := local:exp(($step/CmpG/*)[1],$context)
-                let $cond2 := local:exp(($step/CmpG/*)[2],$context)
+                let $cond1 := local:Path(($step/CmpG/*)[1],$context)
+                let $cond2 := local:Path(($step/CmpG/*)[2],$context)
                 return $step/@axis || "::" || $step/@test || "[" || $cond1 || $step/CmpG/@op || $cond2 ||"]"  
                 else $step/@axis || "::" || $step/@test
    else 
    if (name($step)="CachedStep") then "[" || $step/@axis || "::" || $step/@test || "]"   
    else           
    if (name($step)="FnNot") 
-          then "not(" || string-join(for-each($step/*,function($x){local:exp($x,$context)}),"/") || ")"
+          then "not(" || string-join(for-each($step/*,function($x){local:Path($x,$context)}),"/") || ")"
                                                  
    else
    if (substring(name($step),1,2)="Fn") then
              let $count := count($step/*)
              let $f := function-lookup(QName("http://www.w3.org/2005/xpath-functions",
              substring-before(data($step/@name),"(")),$count) 
-             let $args := [for $exp in $step/* return [local:exp($exp,$context)]]
+             let $args := [for $exp in $step/* return [local:Path($exp,$context)]]
              return 
              substring-before(data($step/@name),"(") || "(" || $args || ")" 
    
    else 
    if (name($step)="CmpG") then
-              let $cond1 := local:exp(($step/*)[1],$context)
-              let $cond2 := local:exp(($step/*)[2],$context)
+              let $cond1 := local:Path(($step/*)[1],$context)
+              let $cond2 := local:Path(($step/*)[2],$context)
               return "(" || $cond1 || $step/@op || $cond2 || ")"  
               
    else 
    if (name($step)="And") then
-           "(" || local:exp(($step/*)[1],$context) || " and " ||   local:exp(($step/*)[2],$context) || ")"
+           "(" || local:Path(($step/*)[1],$context) || " and " ||   local:Path(($step/*)[2],$context) || ")"
    else 
    if (name($step)="Or") then
-           "(" || local:exp(($step/*)[1],$context) || " or " ||   local:exp(($step/*)[2],$context) || ")"          
+           "(" || local:Path(($step/*)[1],$context) || " or " ||   local:Path(($step/*)[2],$context) || ")"          
    else 
    if (name($step)="Empty") then 
       "()"
@@ -174,12 +179,12 @@ declare function local:Path($step,$context)
 
 declare function local:CElem($query,$context)
 {
- <CElem>{$query/QNm,<values>{local:exps(tail($query/*),$context)}</values>}</CElem> 
+ <CElem>{$query/QNm,<values>{local:exps(tail($query/*),$context)/value}</values>}</CElem> 
 };
 
 declare function local:CAttr($query,$context)
 { 
- <CAttr>{$query/QNm,<values>{local:exps(tail($query/*),$context)}</values>}</CAttr>
+ <CAttr>{$query/QNm,<values>{local:exps(tail($query/*),$context)/value}</values>}</CAttr>
 };
 
 declare function local:GFLWOR($query,$context)
@@ -209,12 +214,12 @@ if (local:exp($cond,$context)) then local:exp($then,$context)
 
 declare function local:Union($query,$context)
 {
-<Union>{<values>{local:exps($query/*,$context)}</values>}</Union>
+<Union>{<values>{local:exps($query/*,$context)/value}</values>}</Union>
 };
 
 declare function local:List($query,$context)
 {
-<List>{<values>{local:exps($query/*,$context)}</values>}</List>
+<List>{<values>{local:exps($query/*,$context)/value}</values>}</List>
 };
   
 let $query :=
@@ -223,9 +228,7 @@ xquery:parse(
 <bib>
  {
   for $b in db:open('bstore1')/bib/book/title
-  
   return $b
- 
 }
 </bib>  
 ")
