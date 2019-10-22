@@ -1,4 +1,4 @@
-(: ORDER BY, LOCAL FUNCTIONS, AGGREGATORS  :)
+(: LOCAL FUNCTIONS, GROUP BY  :)
 
 declare function local:For($for,$orderby,$where,$return,$context)
 {
@@ -11,8 +11,8 @@ declare function local:For($for,$orderby,$where,$return,$context)
   let $count := count(local:exp($path,$context)//values/value/(*|@*|text()))
   return 
   for $i in 1 to $count 
-  (:order by local:OrderBy($orderby,<var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union 
-  $context):)
+  order by local:OrderBy($orderby,<var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union 
+  $context)
   where local:Where($where,
   <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)//values/value/text()=true()
   and local:Return($return, 
@@ -32,7 +32,7 @@ declare function local:Let($let,$orderby,$where,$return,$context)
   <Let>{$var} 
   <values>{
   let $i := 0 
-  (:order by local:OrderBy($orderby,<var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context):)
+  order by local:OrderBy($orderby,<var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)
   where local:Where($where,
   <var><name>{$var}</name><path>{$path}</path><position>{$i}</position></var> union $context)//values/value/text()=true()
    and local:Return($return, 
@@ -109,6 +109,8 @@ declare function local:Return($return,$context)
 
 declare function local:Path($step,$context)
 {  
+   if (name($step)="ContextValue") then "."
+   else
    if (name($step)="Root") then "root()" 
    else
    if (name($step)="DbOpen") then 
@@ -148,17 +150,23 @@ declare function local:Path($step,$context)
    else           
    if (name($step)="CachedFilter") 
           then 
-          local:Path(head($step/*),$context) || "[" ||
-          string-join(for-each(tail($step/*),function($x){local:Path($x,$context)}),"/")
-                   || "]"
+          local:Path(head($step/*),$context) || 
+          string-join(for-each(tail($step/*),function($x){"[" || local:Path($x,$context) || "]"}),"")
+                   
     else
    if (name($step)="IterStep") then 
                 if ($step/CmpG) then 
                 let $cond1 := local:Path(($step/CmpG/*)[1],$context)
                 let $cond2 := local:Path(($step/CmpG/*)[2],$context)
-                return $step/@axis || "::" || $step/@test || "[" || $cond1 || $step/CmpG/@op || $cond2 ||"]"  
+                return $step/@axis || "::" || $step/@test || "[" || $cond1 || $step/CmpG/@op || $cond2 ||"]"
+                else
+                if ($step/CmpN) then 
+                let $cond1 := local:Path(($step/CmpN/*)[1],$context)
+                let $cond2 := local:Path(($step/CmpN/*)[2],$context)
+                return $step/@axis || "::" || $step/@test || "[" || $cond1 || $step/CmpN/@op || $cond2 ||"]"  
                 else $step/@axis || "::" || $step/@test
    else 
+   
    if (name($step)="CachedStep") then $step/@axis || "::" || $step/@test || "[" || 
                             string-join(for-each($step/*,function($x){local:Path($x,$context)}),"/") || "]"
                           
@@ -178,6 +186,12 @@ declare function local:Path($step,$context)
    
    else 
    if (name($step)="CmpG") then
+              let $cond1 := local:Path(($step/*)[1],$context)
+              let $cond2 := local:Path(($step/*)[2],$context)
+              return "(" || $cond1 || $step/@op || $cond2 || ")"  
+              
+   else 
+   if (name($step)="CmpN") then
               let $cond1 := local:Path(($step/*)[1],$context)
               let $cond2 := local:Path(($step/*)[2],$context)
               return "(" || $cond1 || $step/@op || $cond2 || ")"  
@@ -277,26 +291,9 @@ declare function local:List($query,$context)
 let $query :=
 xquery:parse(
 " 
-<bib>
-{
-    for $book1 in db:open('bstore1')//book,
-        $book2 in db:open('bstore1')//book
-    let $aut1 := for $a in $book1/author 
-                 order by $a/last, $a/first
-                 return $a
-    let $aut2 := for $a in $book2/author 
-                 order by $a/last, $a/first
-                 return $a
-    where $book1 << $book2
-    and not($book1/title = $book2/title)
-    and deep-equal($aut1, $aut2) 
-    return
-        <book-pair>
-            { $book1/title }
-            { $book2/title }
-        </book-pair>
-}
-</bib>          ")
+let $i2 := (db:open('report')//incision)[2]
+for $a in (db:open('report')//action)[. >> $i2][position()<=2]
+return $a//instrument   ")
 return local:exps($query/QueryPlan/*,())
 
  
