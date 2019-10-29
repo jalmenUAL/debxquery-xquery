@@ -3,10 +3,10 @@
     for $book1 in db:open('bstore1')//book,
         $book2 in db:open('bstore1')//book
     let $aut1 := for $a in $book1/author 
-                 order by $a/last, $a/first
+                  
                  return $a
     let $aut2 := for $a in $book2/author 
-                 order by $a/last, $a/first
+                  
                  return $a
     where $book1 << $book2
     and not($book1/title = $book2/title)
