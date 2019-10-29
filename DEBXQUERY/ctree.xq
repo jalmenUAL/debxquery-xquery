@@ -6,8 +6,9 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   let $var := $for/Var
   let $path := $for/*[2]
   return
-  <For>{$var}<path>{$path}</path> 
+  <For>{$var} 
   <values>{
+   
   let $count := count(local:exp($path,$context,$static)/values/value)  
   return           
   for $i in 1 to $count 
@@ -17,10 +18,10 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context> ,$static) 
   where local:Where($where,<context>{
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>
-  ,$static)/values/value/text()=true()
+  ,$static)/values/value/content/text()=true()
   and $return 
   return     
-  $return/values/value
+  $return/values/value  
   }</values></For>
    
 };
@@ -30,8 +31,9 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   let $var := $let/Var
   let $path := $let/*[2]
   return
-  <Let>{$var}<path>{$path}</path> 
+  <Let>{$var}  
   <values>{
+   
   let $i := 0 
   let $return := 
   local:Return($return,
@@ -39,10 +41,10 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context> ,$static) 
   where local:Where($where,
  <context>{
-   (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>,$static)/values/value/text()=true()
+   (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>,$static)/values/value/content/text()=true()
    and $return 
   return   
-  $return/values/value
+  $return/values/value 
 }</values></Let>
 };
 
@@ -74,11 +76,11 @@ declare function local:exp($exp,$context,$static)
    else          
     if (name($exp)="StaticFuncCall") then local:StaticFuncCall($exp,$context,$static)
    else 
-    if (name($exp)="Empty") then <values><value>()</value></values>
+    if (name($exp)="Empty") then <values><value><content>()</content></value></values>
    else  
    let $path :=  string-join(for-each($exp,function($x){local:Path($x,$context,$static)}),"/")
    return
-    <path value="{$path}"><values>{for $x in xquery:eval($path) return <value>{$x}</value>}</values></path>
+    <path><values>{for $x in xquery:eval($path) return <value><path>{$exp}</path><content>{$x}</content></value>}</values></path>
     
 };
 
@@ -110,18 +112,20 @@ declare function local:Quantifier($quan,$context,$static)
                                return
                                 
                                <Quantifier>                          
-                   <values><value>{some $r in $res/values/value/text() satisfies $r="true"}</value></values></Quantifier>
+                   <values><value><content>{some $r in $res/values/value/content/text() satisfies $r="true"}</content></value></values></Quantifier>
   else let $res := local:GFLWOR($quan/*,$context,$static) 
                    return 
                    <Quantifier>
-                   <values><value>{every $r in $res/values/value/text() satisfies $r="true"}</value></values></Quantifier>
+                   <values><value><content>{every $r in $res/values/value/content/text() satisfies $r="true"}</content></value></values></Quantifier>
 };
  
 
 declare function local:Where($where,$context,$static)
 {
-  if (empty($where/*)) then <Where><values><value>{true()}</value></values></Where>  
-  else <Where>{<values>{local:exp($where/*,$context,$static)/values/value}</values>}</Where>  
+  if (empty($where/*)) then <Where><values><value><content>{true()}</content></value></values></Where>  
+  else 
+  
+  <Where>{<values>{local:exp($where/*,$context,$static)/values/value}</values>}</Where>  
 };
 
  
@@ -201,7 +205,7 @@ declare function local:Path($step,$context,$static)
                                                 
    else           
    if (name($step)="FnNot") 
-          then "not(" || (if (local:exp($step/*,$context,$static)/values/value/text()="true") 
+          then "not(" || (if (local:exp($step/*,$context,$static)/values/value/content/text()="true") 
           then "true()" else "false()") || ")" 
                                       
    else
@@ -242,14 +246,16 @@ declare function local:Path($step,$context,$static)
    else
    if ($step/@type) then data($step/@value)
    else
-   if (local:exp($step,$context,$static)/values/value/text()="true") then
+   if (local:exp($step,$context,$static)/values/value/content/text()="true") then
    "true()"
    else
-   if (local:exp($step,$context,$static)/values/value/text()="false") then
+   if (local:exp($step,$context,$static)/values/value/content/text()="false") then
    "false()"
    else
-   if (local:exp($step,$context,$static)/values/value) then
-      serialize(<root>{local:exp($step,$context,$static)/values/value}</root>, map {'method': 'xml' }) || "/value/node()" 
+   let $values := local:exp($step,$context,$static)/values/value/content
+   return
+   if ($values) then
+      serialize(<root>{$values}</root>, map {'method': 'xml' }) || "/content/node()" 
    else "()"
 }; 
  
@@ -257,17 +263,19 @@ declare function local:Path($step,$context,$static)
 declare function local:CElem($query,$context,$static)
 {
   
-<CElem><values>{<value>{
+<CElem><values>{<value><path>{local:exps(tail($query/*),$context,$static)/values/
+ value}</path><content>{
  element {data($query/QNm/@value)} {local:exps(tail($query/*),$context,$static)/values/
- value/(node()|@*)}}</value>
+ value/content/(node()|@*)}}</content></value>
 }</values></CElem>  
 };
 
 declare function local:CAttr($query,$context,$static)
 { 
-<CAttr><values>{<value>{
+<CAttr><values>{<value><path>{local:exps(tail($query/*),$context,$static)/values/
+ value}</path><content>{
  attribute {data($query/QNm/@value)} {data(local:exps(tail($query/*),$context,$static)/values/
- value/(node()|@*))}}</value>
+ value/content/(node()|@*))}}</content></value>
 }</values></CAttr>
 };
 
@@ -348,23 +356,25 @@ let $query :=
 xquery:parse(
 "
 <bib>
-  {
-    for $b in db:open('bstore1')//book
-    where count($b/author) > 0
+{
+    for $book1 in db:open('bstore1')//book,
+        $book2 in db:open('bstore1')//book
+    let $aut1 := for $a in $book1/author 
+                  
+                 return $a
+    let $aut2 := for $a in $book2/author 
+                  
+                 return $a
+    where $book1 << $book2
+    and not($book1/title = $book2/title)
+    and deep-equal($aut1, $aut2) 
     return
-        <book>
-            { $b/title }
-            {
-                for $a in $b/author[position()<=2]  
-                return $a
-            }
-            {
-                if (count($b/author) > 2)
-                 then <et-al/>
-                 else ()
-            }
-        </book>
-  }
+        <book-pair>
+            { $book1/title }
+            { $book2/title }
+        </book-pair>
+}
 </bib> 
+ 
 ")
 return local:exps($query/QueryPlan/*[not(name(.)="StaticFunc")],<context></context>,$query/QueryPlan/*[name(.)="StaticFunc"])
