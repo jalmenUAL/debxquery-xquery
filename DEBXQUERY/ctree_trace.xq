@@ -9,33 +9,25 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   <For>{$var} 
   <values>{
    
-  let $count := count(local:exp($path,$context,$static)/values/value/content/node())  
-  return     
-  if ($count>0) then  
-  (   
+  let $count := count(local:exp($path,$context,$static)/values/value)  
+  return           
   for $i in 1 to $count 
   let $return := 
   local:Return($return,
   <context>{
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context> ,$static) 
-   return
-  if (local:Where($where,<context>{
+  where local:Where($where,<context>{
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>
-  ,$static)/values/value/content/text()=true())
+  ,$static)/values/value/content/text()=true()
   (:and $return:)
-  then
+  return     
   
   <value>{$return/values/value/content,<path><where>{local:Where($where,<context>{
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>
   ,$static)/values/value/path}</where><return>{$return/values/value/path}</return></path>}</value>  
-  
-  else <value><content></content><path>{<context>{
-   (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>,$where,<item type="where"></item>}</path></value>
- )
-   else <value><content></content><path>{$context,$path,<item type="for"></item>}</path></value>
-
+   
   }</values></For>
-  
+   
 };
 
 declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$static)
@@ -45,32 +37,22 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   return
   <Let>{$var}  
   <values>{
-  
-  let $count := count(local:exp($path,$context,$static)/values/value/content/node())
-  return
-  if ($count > 0) then
-  
+   
   let $i := 0 
   let $return := 
   local:Return($return,
   <context>{
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context> ,$static) 
-   return
-  if (local:Where($where,
+  where local:Where($where,
  <context>{
-   (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>,$static)/values/value/content/text()=true())
+   (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>,$static)/values/value/content/text()=true()
    (:and $return:) 
-  then
+  return   
    
   <value>{$return/values/value/content,<path><where>{local:Where($where,<context>{
    (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>
   ,$static)/values/value/path}</where><return>{$return/values/value/path}</return></path>}</value>  
-   
-   else <value><content></content><path>{<context>{
-   (for $x in $context/* where not($x//@name=$var//@name) return $x) union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>}</context>,$where,<item type="where"></item>}</path></value>
-   
-   else <value><content>()</content><path>{$context,$path,<item type="let">()</item>}</path></value> 
-
+    
 }</values></Let>
 };
 
@@ -106,10 +88,9 @@ declare function local:exp($exp,$context,$static)
    else  
    let $path :=  string-join(for-each($exp,function($x){local:Path($x,$context,$static)}),"/")
    return
-   if (xquery:eval($path)) then
+   
     <path><values>{for $x in xquery:eval($path) return <value><path>{$context,$exp,<item>{$x}</item>}</path><content>{$x}</content></value>}</values></path>
-     else
-     <path><values>{<value><path>{$context,$exp,<item type="path"></item>}</path><content></content></value>}</values></path>
+     
     
 };
 
@@ -385,21 +366,16 @@ declare function local:List($query,$context,$static)
 let $query :=
 xquery:parse(
 "
-declare function local:toc($book-or-section as element()) as element()*
-{
-    for $section in $book-or-section/section
-    return
-      <section>
-         { $section/@* , $section/mipolla , local:toc($section) }                 
-      </section>
-};
-
-<toc>
-   {
-     for $s in db:open('book')/book return local:toc($s)
-   }
-</toc> 
+<bib>
+ {
+  for $b in db:open('bstore1')/bib/book
+  where $b/publisher = 'Addison-Wesley' and $b/@year > 1991
+  return
+    <book year='{ $b/@year }'>
+     { $b/title }
+    </book>
+ }
+</bib> 
  
 ")
 return local:exps($query/QueryPlan/*[not(name(.)="StaticFunc")],(),$query/QueryPlan/*[name(.)="StaticFunc"])
-//item[empty(./node()) and @type="path"]/..
