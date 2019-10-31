@@ -520,7 +520,7 @@ declare function local:epaths($string_query,$type)
 declare function local:print_context($context)
 {
   <a>{
-  let $count := count($context)
+  let $count := count($context/var/name)
   for $i in 1 to $count
   return
   data(($context/var/name/Var/@name)[$i]) || "=" || local:showPath(($context/var/path/*)[$i],$context)
@@ -529,16 +529,20 @@ declare function local:print_context($context)
 
 
 local:epaths("
-<bib>
- {
-  for $a in db:open('bstore1')/bib/book
-  let $b := $a
-  return
-    <book year='{ $b/@year }'>
-     { $b/polla }
-    </book>
- }
-</bib> 
+declare function local:toc($book-or-section as element()) as element()*
+{
+    for $section in $book-or-section/section
+    return
+      <section>
+         { $section/@* , $section/comemeloshuevosgerman , local:toc($section) }                 
+      </section>
+};
+
+<toc>
+   {
+     for $s in db:open('book')/book return local:toc($s)
+   }
+</toc>  
 ","path")
 
 
