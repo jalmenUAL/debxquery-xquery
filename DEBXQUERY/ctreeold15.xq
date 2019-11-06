@@ -16,25 +16,31 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   let $return := 
   local:Return($return,
   <context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
   $context/*
   union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
   }</context>,$static) 
   return
-  let $where := local:Where($where,
+  if (local:Where($where,
   <context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
   $context/*
   union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
-  }</context>,$static)
-  return
-  if ($where/values/value/content/text()=true()
+  }</context>,$static)/values/value/content/text()=true()
   )
   (:and $return:)
   then 
-  <value>{$return/values/value/content,<path><where>{$where/values/value/path}</where>
+  <value>{$return/values/value/content,<path><where>{local:Where($where,
+  <context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
+  $context/* 
+  union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
+  }</context>,$static)/values/value/path}</where>
   <return>{$return/values/value/path}</return></path>}</value>  
   else 
   <value><content></content><path>{
   <context>{
+   (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
   $context/*
   union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
   }</context>,$where/*,<item type="where"></item>}</path></value>
@@ -54,24 +60,30 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   let $return := 
   local:Return($return,
   <context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
   $context/*
   union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
   }</context>,$static) 
   return
-  let $where := local:Where($where,
+  if (local:Where($where,
   <context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
   $context/* 
   union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
-  }</context>,$static)
-  return
-  if ($where/values/value/content/text()=true())
+  }</context>,$static)/values/value/content/text()=true())
   (:and $return:) 
   then 
   for $content in $return/values/value/content
   return
-  <value>{$content,<path><where>{$where/values/value/path}</where><return>{$return/values/value/path}</return></path>}</value>   
+  <value>{$content,<path><where>{local:Where($where,
+  <context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
+  $context/* 
+  union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
+  }</context>,$static)/values/value/path}</where><return>{$return/values/value/path}</return></path>}</value>   
   else 
   <value><content></content><path>{<context>{
+  (:(for $x in $context/* where not($x//@name=$var//@name) return $x):)
   $context/*
   union <var><name>{$var}</name><path>{$path}</path><context>{$context}</context><position>{$i}</position></var>
   }</context>,$where/*,<item type="where"></item>}</path></value>
@@ -110,7 +122,7 @@ declare function local:exp($exp,$context,$static)
    <path><values path="{$path}">{for $x in xquery:eval($path) return
    <value><path>{$context,$exp,<item type="path">{$path}</item>}</path>
    <content>{$x}</content></value>}</values></path>
-   else  
+   else (: when xquery:eval($path) is the empty sequence :)
    <path><values path="{$path}">{
    <value><path>{$context,$exp,<item type="path">{$path}</item>}</path>
    <content></content></value>}</values></path>
@@ -121,7 +133,7 @@ declare function local:exp($exp,$context,$static)
 declare function local:FnCall($exp,$context,$static)
 {
   let $count := count($exp/*)
-  let $args :=   
+  let $args :=  
                 [local:exp($exp/*,$context,$static)/values/value/content/node()]
   let $func := function-lookup(QName("http://www.w3.org/2005/xpath-functions",
              substring-before(data($exp/@name),"(")),$count) 
@@ -159,14 +171,14 @@ if ($quan/@type="some") then
                    let $res := local:GFLWOR($quan/*,$context,$static)
                    return 
                    <Quantifier>                          
-                   <values><value>{$res/values/value/path}
+                   <values><value>{local:GFLWOR($quan/*,$context,$static)/values/value/path}
                    <content>{some $r in $res/values/value/content/text() satisfies $r="true"}</content>
                    </value></values></Quantifier>
                    else 
                    let $res := local:GFLWOR($quan/*,$context,$static) 
                    return 
                    <Quantifier>
-                   <values><value>{$res/values/value/path}
+                   <values><value>{local:GFLWOR($quan/*,$context,$static)/values/value/path}
                    <content>{every $r in $res/values/value/content/text() satisfies $r="true"}</content>
                    </value></values></Quantifier>
 };
@@ -226,15 +238,14 @@ declare function local:Path($step,$context,$static)
           then string-join(for-each($step/*,function($x){local:Path($x,$context,$static)}),"/")               
    else
    if (name($step)="IterPath") 
-          then string-join(for-each($step/*,function($x){local:Path($x,$context,$static)}),"/")   
+          then string-join(for-each($step/*,function($x){local:Path($x,$context,$static)}),"/")      
    else   
    if (name($step)="Union") then   "(" || 
-                   string-join(for-each($step/*,function($x){local:Path($x,$context,$static)}),"|") || ")"  
+                   string-join(for-each($step/*,function($x){"(" || local:Path($x,$context,$static) || ")"})," union ") || ")"  
    else
    if (name($step)="InterSect") then   "(" || 
-                   string-join(for-each($step/*,function($x){local:Path($x,$context,$static)}),"intersect") || ")"  
-   else 
-   
+                   string-join(for-each($step/*,function($x){"(" || local:Path($x,$context,$static) || ")"})," intersect ") || ")"  
+   else
    if (name($step)="MixedPath")
                    then
                    local:Path(<CachedPath>{$step/*}</CachedPath>,$context,$static)                  
@@ -256,13 +267,16 @@ declare function local:Path($step,$context,$static)
    else           
    if (name($step)="FnNot") 
           then "not(" || (if (local:exp($step/*,$context,$static)/values/value/content/text()="true") 
-          then "true()" else "false()") || ")"                                          
-   else 
+          then "true()" else "false()") || ")"                                    
+    
+   (:
    if (substring(name($step),1,2)="Fn") then
+             let $count := count($step/*)
              let $args := string-join(for $exp in $step/* return [local:Path($exp,$context,$static)],",")
              return 
-             substring-before(data($step/@name),"(") || "(" || $args || ")" 
-   else
+             substring-before(data($step/@name),"(") || "(" || $args || ")"
+   :)          
+   else 
    if (name($step)="CmpG") then
               let $cond1 := local:Path(($step/*)[1],$context,$static)
               let $cond2 := local:Path(($step/*)[2],$context,$static)
@@ -293,13 +307,11 @@ declare function local:Path($step,$context,$static)
    else
    if ($step/@type) then data($step/@value)
    else
-   let $exp := local:exp($step,$context,$static)/values/value/content
-   return
-   if ($exp/text()="true") then "true()"
+   if (local:exp($step,$context,$static)/values/value/content/text()="true") then "true()"
    else
-   if ($exp/text()="false") then "false()"
+   if (local:exp($step,$context,$static)/values/value/content/text()="false") then "false()"
    else
-   serialize(<root>{$exp}</root>, 
+   serialize(<root>{local:exp($step,$context,$static)/values/value/content}</root>, 
    map {'method': 'xml' }) || "/content/node()"
    
 }; 
@@ -373,7 +385,9 @@ declare function local:showPath($step,$context)
           local:showPath($step/GFLWOR/For/*[2],$context)
           || " satisfies " || local:showPath(($step/GFLWOR)/*[2],
           <context>{
+          
            $context/*
+          (:(for $x in $context/* where not($x//@name=$step/GFLWOR/For/Var//@name) return $x):)
           union <var><name>{$step/GFLWOR/For/Var}</name><path>{$step/GFLWOR/For/*[2]}</path>
           <context>{$context}</context><position>{0}</position></var>}</context>)                                   
    else
@@ -414,13 +428,11 @@ declare function local:showPath($step,$context)
 
 declare function local:CElem($query,$context,$static)
 { 
-let $exps :=  local:exps(tail($query/*),$context,$static)
-return
 <CElem>
 <values>{<value>{
-     $exps/values/value/path}
+      local:exps(tail($query/*),$context,$static)/values/value/path}
       <content>{element {data($query/QNm/@value)} 
-      {$exps/values/value/content/(node()|@*)}}
+      {local:exps(tail($query/*),$context,$static)/values/value/content/(node()|@*)}}
       </content></value>
 }</values>
 </CElem>  
@@ -428,13 +440,11 @@ return
 
 declare function local:CAttr($query,$context,$static)
 { 
-let $exps := local:exps(tail($query/*),$context,$static)
-return
 <CAttr>
 <values>{<value>{
-  $exps/values/value/path}
+  local:exps(tail($query/*),$context,$static)/values/value/path}
   <content>{attribute {data($query/QNm/@value)} 
-  {data($exps/values/value/content/(node()|@*))}}
+  {data(local:exps(tail($query/*),$context,$static)/values/value/content/(node()|@*))}}
   </content></value>
 }</values>
 </CAttr>
@@ -497,30 +507,25 @@ declare function local:If($query,$context,$static)
 let $cond := ($query/*)[1]
 let $then := ($query/*)[2]
 let $else := ($query/*)[3]
-let $bcond := local:exp($cond,$context,$static)
 return
-if ($bcond/values/value/content/text()=true()) 
+if (local:exp($cond,$context,$static)/values/value/content/text()=true()) 
 then 
-let $bthen := local:exp($then,$context,$static)
-return
 <If>
 <values><value>
 <path>
-<If>{$bcond/values/value/path}</If>
-<Then>{$bthen/values/value/path}</Then>
+<If>{local:exp($cond,$context,$static)/values/value/path}</If>
+<Then>{local:exp($then,$context,$static)/values/value/path}</Then>
 </path>
-{$bthen/values/value/content}
+{local:exp($then,$context,$static)/values/value/content}
 </value></values></If> 
 else 
-let $belse := local:exp($else,$context,$static)
-return
 <If>
 <values><value>
 <path>
-<If>{$bcond/values/value/path}</If>
-<Else>{$belse/values/value/path}</Else>
+<If>{local:exp($cond,$context,$static)/values/value/path}</If>
+<Else>{local:exp($else,$context,$static)/values/value/path}</Else>
 </path>
-{$belse/values/value/content}
+{local:exp($else,$context,$static)/values/value/content}
 </value></values></If> 
 };
 
@@ -560,13 +565,48 @@ declare function local:print_context($context)
 
 
 local:trace("
-<results>
-  {
-    for $t in db:open('books')//(chapter | section)/title
-    where contains($t/text(), 'XML')
-    return $t
-  }
-</results>  
+declare function local:zorra($x,$y)
+{
+  local:puton($x,$y)
+};
+declare function local:puton($x,$y)
+{
+  $x
+};
+
+declare function local:puta($x,$seq)
+{
+   if (empty($seq)) then $x
+  else  local:puta($x,tail($seq))
+};
+
+declare function local:insert($x,$seq)
+{
+  if (empty($seq)) then ($x)
+  else if ($x >= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
+};
+
+declare function local:insort($seq)
+{
+  if (empty($seq)) then ()
+  else
+  local:insert(head($seq),local:insort(tail($seq)))
+};
+
+declare function local:toc($book-or-section as element()) as element()*
+{
+    for $section in $book-or-section/section
+    return
+      <section>
+         { $section/@* , $section/title , local:toc($section) }                 
+      </section>
+};
+
+<toc>
+   {
+     for $s in db:open('book')/book return local:toc($s)
+   }
+</toc> 
 ") 
 
 
