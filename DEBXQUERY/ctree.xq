@@ -102,36 +102,19 @@ declare function local:exp($exp,$context,$static)
    else          
    if (name($exp)="StaticFuncCall") then local:StaticFuncCall($exp,$context,$static)
    else
-   if (substring(name($exp),1,2)="Fn") then local:FnCall($exp,$context,$static)
-   else
    let $path := string-join(for-each($exp,function($x){local:Path($x,$context,$static)}),"/")
    return
    if (exists(xquery:eval($path))) then  
    <path><values path="{$path}">{for $x in xquery:eval($path) return
-   <value><path>{$context,$exp,<item type="path">{$path}</item>}</path>
+   <value><path>{$context,<item type="path">{$exp}</item>}</path>
    <content>{$x}</content></value>}</values></path>
    else  
    <path><values path="{$path}">{
-   <value><path>{$context,$exp,<item type="path">{$path}</item>}</path>
+   <value><path>{$context,<item type="path">{$exp}</item>}</path>
    <content></content></value>}</values></path>
    
 };    
     
-
-declare function local:FnCall($exp,$context,$static)
-{
-  let $count := count($exp/*)
-  let $args :=   
-                [local:exp($exp/*,$context,$static)/values/value/content/node()]
-  let $func := function-lookup(QName("http://www.w3.org/2005/xpath-functions",
-             substring-before(data($exp/@name),"(")),$count) 
-  return 
-  if (exists(apply($func,$args))) then
-  <FnCall><values>{for $x in apply($func,$args) return<value><path>{$exp}</path><content>{$x}</content></value>}</values></FnCall>
-  else
-  <FnCall><values><value><path>{$exp}</path><content></content></value></values></FnCall>
-  
-};
 
 declare function local:StaticFuncCall($exp,$context,$static) 
 {  
@@ -180,9 +163,6 @@ declare function local:Where($where,$context,$static)
                        else 
                        <Where>{<values>{local:exp($where/*,$context,$static)/values/value}</values>}</Where>  
 };
-
- 
-
 
 declare function local:Return($return,$context,$static)
 {
@@ -321,7 +301,7 @@ declare function local:showPath($step,$context)
    else
    if (name($step)="VarRef") then 
              let $varn := $step/Var/@name
-             let $con := ($context/*[name/Var/@name=data($varn)])[1]
+             let $con := ($context/*[name/Var/@name=data($varn)])[last()]
              let $path := 
              $con/path
              let $context := 
@@ -534,6 +514,11 @@ declare function local:trace($string_query)
   $query/QueryPlan/*[name(.)="StaticFunc"])
 };
 
+declare function local:exec($string_query)
+{
+  local:trace($string_query)/values/value/content/node()
+};
+
 declare function local:epaths($string_query,$type)
 {
   let $path := (local:trace($string_query)//item[empty(./node()) and @type=$type]/../*)[2]
@@ -559,15 +544,20 @@ declare function local:print_context($context)
 };
 
 
-local:trace("
-<results>
-  {
-    for $t in db:open('books')//(chapter | section)/title
-    where contains($t/text(), 'XML')
-    return $t
-  }
-</results>  
-") 
+local:epaths("
+declare function local:insert($x,$seq)
+{
+  if (empty($seq)) then ($x)
+  else if ($x >= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
+};
+
+declare function local:insort($seq)
+{
+  if (empty($seq)) then ()
+  else
+  local:insert(head($seq),local:insort(tail($seq)))
+};
+local:insort((2,1,3))","path")
 
 
 
