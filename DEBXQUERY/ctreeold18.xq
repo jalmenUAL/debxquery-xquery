@@ -33,16 +33,16 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   if ($rwhere/values/value/content/text()=true())
    
   then 
-      <value>{$return/values/value/content,<partial type="For">{$var}{$path}{$context}<position>{$i}</position><partial type="where">{$rwhere}</partial>
-      <partial type="return">{$return}</partial></partial>}</value>  
+      <value>{$return/values/value/content,<partial type="For">{$var}{$path}{$context}<position>{$i}</position><partial type="where">{$rwhere/values/value/partial/node()}</partial>
+      <partial type="return">{$return/values/value/partial/node()}</partial>{$return/values/value/content}</partial>}</value>  
   else 
-      <value><content></content><partial type="For">{$var}{$path}{$context}<position>{$i}</position><partial type="where">{$rwhere}</partial>
-      <partial type="return"></partial></partial></value>
+      <value><content></content><partial type="For">{$var}{$path}<position>{$i}</position><partial type="where">{$rwhere/values/value/partial/node()}</partial>
+      <partial type="return"></partial><content></content></partial></value>
   ) (:nowhere:)
   else <value>{$return/values/value/content,<partial type="For">{$var}{$path}{$context}<position>{$i}</position>
-      <partial type="return">{$return}</partial></partial>}</value> 
+      <partial type="return">{$return/values/value/partial/node()}</partial>{$return/values/value/content}</partial>}</value> 
   ) (:nopath:)
-  else <value><content></content><partial type="For">{$var}{$path}{$context}<partial type="return"></partial>
+  else <value><content></content><partial type="For">{$var}{$path}{$context}<partial type="return"></partial><content></content>
   </partial></value>
   }</values></For>  
 };
@@ -74,15 +74,15 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   then 
          for $content in $return/values/value/content
          return
-        <value>{$content,<partial type="Let">{$var}{$path}{$context}<partial type="where">{$rwhere}</partial>
-        <partial type="return">{$return}</partial></partial>}</value>   
+        <value>{$content,<partial type="Let">{$var}{$path}{$context}<partial type="where">{$rwhere/values/value/partial/node()}</partial>
+        <partial type="return">{$return/values/value/partial/node()}</partial>{$content}</partial>}</value>   
   else 
-        <value><content></content><partial type="Let">{$var}{$path}{$context}<partial type="where">{$rwhere}</partial>
-        <partial type="return">{$return}</partial></partial></value>
+        <value><content></content><partial type="Let">{$var}{$path}{$context}<partial type="where">{$rwhere/values/value/partial/node()}</partial>
+        <partial type="return">{$return/values/value/partial/node()}</partial><content></content></partial></value>
   ) (: nowhere :)
   else  for $content in $return/values/value/content
         return <value>{$content,<partial type="Let">{$var}{$path}{$context}
-        <partial type="return">{$return}</partial></partial>}</value> 
+        <partial type="return">{$return/values/value/partial/node()}</partial>{$content}</partial>}</value> 
   }</values></Let>
 };
 
@@ -130,11 +130,11 @@ declare function local:exp($exp,$context,$static)
    return
    if (exists(xquery:eval($path))) then  
    <path><values>{for $x in xquery:eval($path) return
-   <value><partial type="Path">{<epath>{$context,$exp}</epath>}</partial>
+   <value><partial type="Path">{<epath>{$context,$exp}</epath>,<content>{$x}</content>}</partial>
           <content>{$x}</content></value>}</values></path>
    else  
    <path><values>{
-   <value><partial type="Path">{<epath>{$context,$exp}</epath>}</partial>
+   <value><partial type="Path">{<epath>{$context,$exp}</epath>,<content></content>}</partial>
           <content></content></value>}</values></path>
    
 }; 
@@ -163,7 +163,9 @@ let $exps :=  local:exps(tail($query/*),$context,$static)
 return
 <CElem>
 <values>{<value><partial type="CElem">
-     {$exps}</partial>
+     {$exps/values/value/partial/node()}<content>{element {data($query/QNm/@value)} 
+      {$exps/values/value/content/(node()|@*)}}
+      </content></partial>
       <content>{element {data($query/QNm/@value)} 
       {$exps/values/value/content/(node()|@*)}}
       </content></value>
@@ -177,7 +179,9 @@ let $exps := local:exps(tail($query/*),$context,$static)
 return
 <CAttr>
 <values>{<value><partial type="CAttr">
-     {$exps}</partial>
+     {$exps/values/value/partial}<content>{element {data($query/QNm/@value)} 
+      {$exps/values/value/content/(node()|@*)}}
+      </content></partial>
   <content>{attribute {data($query/QNm/@value)} 
   {data($exps/values/value/content/(node()|@*))}}
   </content></value>
@@ -199,8 +203,9 @@ return
 <If>
 <values><value>
 <partial type="If">
-<partial type="Cond">{$bcond}</partial>
-<partial type="Then">{$bthen}</partial>
+<partial type="Cond">{$bcond/values/value/partial/node()}</partial>
+<partial type="Then">{$bthen/values/value/partial/node()}</partial>
+{$bthen/values/value/content}
 </partial>
 {$bthen/values/value/content}
 </value></values></If> 
@@ -210,8 +215,9 @@ return
 <If>
 <values><value>
 <partial type="If">
-<partial type="Cond">{$bcond}</partial>
-<partial type="Else">{$belse}</partial>
+<partial type="Cond">{$bcond/values/value/partial/node()}</partial>
+<partial type="Else">{$belse/values/value/partial/node()}</partial>
+{$belse/values/value/content}
 </partial>
 {$belse/values/value/content}
 </value></values></If> 
@@ -226,16 +232,16 @@ if ($quan/@type="some") then
                    let $res := local:GFLWOR($quan/*,$context,$static)
                    return 
                    <Quantifier>                          
-                   <values><value>{<partial type="Quantifier">{$res}
-                   </partial>}
+                   <values><value>{<partial type="Quantifier">{$res/values/value/partial/node()}
+                   <content>{some $r in $res/values/value/content/text() satisfies $r="true"}</content></partial>}
                    <content>{some $r in $res/values/value/content/text() satisfies $r="true"}</content>
                    </value></values></Quantifier>
                    else 
                    let $res := local:GFLWOR($quan/*,$context,$static) 
                    return 
                    <Quantifier>
-                   <values><value>{<partial type="Quantifier">{$res}
-                   </partial>}
+                   <values><value>{<partial type="Quantifier">{$res/values/value/partial/node()}
+                   <content>{every $r in $res/values/value/content/text() satisfies $r="true"}</content></partial>}
                    <content>{every $r in $res/values/value/content/text() satisfies $r="true"}</content>
                    </value></values></Quantifier>
 };
@@ -269,7 +275,7 @@ return
 <value>
 {
 $x/content,
-<partial type="StaticFuncCall">{$gflwor}</partial> 
+<partial type="StaticFuncCall"><partial type="call">{$x/partial/node()}</partial>{$x/content}</partial> 
 }
 </value>
 }</values>
