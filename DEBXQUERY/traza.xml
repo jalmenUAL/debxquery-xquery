@@ -1,0 +1,488 @@
+<StaticFuncCall>
+  <values>
+    <partial type="StaticFuncCall">
+      <StaticFuncCall name="local:insort" tailCall="false">
+        <List>
+          <Int value="1" type="xs:integer"/>
+          <Int value="2" type="xs:integer"/>
+          <Int value="3" type="xs:integer"/>
+        </List>
+      </StaticFuncCall>
+      <values>
+        <partial type="Let">
+          <Var name="$seq"/>
+          <List>
+            <Int value="1" type="xs:integer"/>
+            <Int value="2" type="xs:integer"/>
+            <Int value="3" type="xs:integer"/>
+          </List>
+          <partial type="return">
+            <values>
+              <partial type="If">
+                <partial type="Cond">
+                  <values>
+                    <partial type="Path">
+                      <epath>
+                        <FnEmpty name="empty(items)">
+                          <VarRef>
+                            <Var name="$seq" id="2"/>
+                          </VarRef>
+                        </FnEmpty>
+                      </epath>
+                    </partial>
+                    <value>
+                      <content>false</content>
+                    </value>
+                  </values>
+                </partial>
+                <partial type="Else">
+                  <values>
+                    <partial type="StaticFuncCall">
+                      <StaticFuncCall name="local:insert" tailCall="false">
+                        <FnHead name="head(items)">
+                          <VarRef>
+                            <Var name="$seq" id="2"/>
+                          </VarRef>
+                        </FnHead>
+                        <StaticFuncCall name="local:insort" tailCall="false">
+                          <FnTail name="tail(items)">
+                            <VarRef>
+                              <Var name="$seq" id="2"/>
+                            </VarRef>
+                          </FnTail>
+                        </StaticFuncCall>
+                      </StaticFuncCall>
+                      <values>
+                        <partial type="Let">
+                          <Var name="$x"/>
+                          <FnHead name="head(items)">
+                            <VarRef>
+                              <Var name="$seq" id="2"/>
+                            </VarRef>
+                          </FnHead>
+                          <partial type="return">
+                            <values>
+                              <partial type="Let">
+                                <Var name="$seq"/>
+                                <StaticFuncCall name="local:insort" tailCall="false">
+                                  <FnTail name="tail(items)">
+                                    <VarRef>
+                                      <Var name="$seq" id="2"/>
+                                    </VarRef>
+                                  </FnTail>
+                                </StaticFuncCall>
+                                <partial type="return">
+                                  <values>
+                                    <partial type="If">
+                                      <partial type="Cond">
+                                        <values>
+                                          <partial type="Path">
+                                            <epath>
+                                              <FnEmpty name="empty(items)">
+                                                <VarRef>
+                                                  <Var name="$seq" id="1"/>
+                                                </VarRef>
+                                              </FnEmpty>
+                                            </epath>
+                                          </partial>
+                                          <value>
+                                            <content>false</content>
+                                          </value>
+                                        </values>
+                                      </partial>
+                                      <partial type="Else">
+                                        <values>
+                                          <partial type="If">
+                                            <partial type="Cond">
+                                              <values>
+                                                <partial type="Path">
+                                                  <epath>
+                                                    <CmpG op="&gt;=">
+                                                      <values>
+                                                        <partial type="Path">
+                                                          <epath>
+                                                            <VarRef>
+                                                              <Var name="$x" id="0"/>
+                                                            </VarRef>
+                                                          </epath>
+                                                        </partial>
+                                                        <value>
+                                                          <content>1</content>
+                                                        </value>
+                                                      </values>
+                                                      <values>
+                                                        <partial type="Path">
+                                                          <epath>
+                                                            <FnHead name="head(items)">
+                                                              <VarRef>
+                                                                <Var name="$seq" id="1"/>
+                                                              </VarRef>
+                                                            </FnHead>
+                                                          </epath>
+                                                        </partial>
+                                                        <value>
+                                                          <content>3</content>
+                                                        </value>
+                                                      </values>
+                                                    </CmpG>
+                                                  </epath>
+                                                </partial>
+                                                <value>
+                                                  <content>false</content>
+                                                </value>
+                                              </values>
+                                            </partial>
+                                            <partial type="Else">
+                                              <values>
+                                                <partial type="Path">
+                                                  <epath>
+                                                    <List>
+                                                      <values>
+                                                        <partial type="Path">
+                                                          <epath>
+                                                            <FnHead name="head(items)">
+                                                              <VarRef>
+                                                                <Var name="$seq" id="1"/>
+                                                              </VarRef>
+                                                            </FnHead>
+                                                          </epath>
+                                                        </partial>
+                                                        <value>
+                                                          <content>3</content>
+                                                        </value>
+                                                      </values>
+                                                      <values>
+                                                        <partial type="StaticFuncCall">
+                                                          <StaticFuncCall name="local:insert" tailCall="false">
+                                                            <VarRef>
+                                                              <Var name="$x" id="0"/>
+                                                            </VarRef>
+                                                            <FnTail name="tail(items)">
+                                                              <VarRef>
+                                                                <Var name="$seq" id="1"/>
+                                                              </VarRef>
+                                                            </FnTail>
+                                                          </StaticFuncCall>
+                                                          <values>
+                                                            <partial type="Let">
+                                                              <Var name="$x"/>
+                                                              <VarRef>
+                                                                <Var name="$x" id="0"/>
+                                                              </VarRef>
+                                                              <partial type="return">
+                                                                <values>
+                                                                  <partial type="Let">
+                                                                    <Var name="$seq"/>
+                                                                    <FnTail name="tail(items)">
+                                                                      <VarRef>
+                                                                        <Var name="$seq" id="1"/>
+                                                                      </VarRef>
+                                                                    </FnTail>
+                                                                    <partial type="return">
+                                                                      <values>
+                                                                        <partial type="If">
+                                                                          <partial type="Cond">
+                                                                            <values>
+                                                                              <partial type="Path">
+                                                                                <epath>
+                                                                                  <FnEmpty name="empty(items)">
+                                                                                    <VarRef>
+                                                                                      <Var name="$seq" id="1"/>
+                                                                                    </VarRef>
+                                                                                  </FnEmpty>
+                                                                                </epath>
+                                                                              </partial>
+                                                                              <value>
+                                                                                <content>false</content>
+                                                                              </value>
+                                                                            </values>
+                                                                          </partial>
+                                                                          <partial type="Else">
+                                                                            <values>
+                                                                              <partial type="If">
+                                                                                <partial type="Cond">
+                                                                                  <values>
+                                                                                    <partial type="Path">
+                                                                                      <epath>
+                                                                                        <CmpG op="&gt;=">
+                                                                                          <values>
+                                                                                            <partial type="Path">
+                                                                                              <epath>
+                                                                                                <VarRef>
+                                                                                                  <Var name="$x" id="0"/>
+                                                                                                </VarRef>
+                                                                                              </epath>
+                                                                                            </partial>
+                                                                                            <value>
+                                                                                              <content>1</content>
+                                                                                            </value>
+                                                                                          </values>
+                                                                                          <values>
+                                                                                            <partial type="Path">
+                                                                                              <epath>
+                                                                                                <FnHead name="head(items)">
+                                                                                                  <VarRef>
+                                                                                                    <Var name="$seq" id="1"/>
+                                                                                                  </VarRef>
+                                                                                                </FnHead>
+                                                                                              </epath>
+                                                                                            </partial>
+                                                                                            <value>
+                                                                                              <content>2</content>
+                                                                                            </value>
+                                                                                          </values>
+                                                                                        </CmpG>
+                                                                                      </epath>
+                                                                                    </partial>
+                                                                                    <value>
+                                                                                      <content>false</content>
+                                                                                    </value>
+                                                                                  </values>
+                                                                                </partial>
+                                                                                <partial type="Else">
+                                                                                  <values>
+                                                                                    <partial type="Path">
+                                                                                      <epath>
+                                                                                        <List>
+                                                                                          <values>
+                                                                                            <partial type="Path">
+                                                                                              <epath>
+                                                                                                <FnHead name="head(items)">
+                                                                                                  <VarRef>
+                                                                                                    <Var name="$seq" id="1"/>
+                                                                                                  </VarRef>
+                                                                                                </FnHead>
+                                                                                              </epath>
+                                                                                            </partial>
+                                                                                            <value>
+                                                                                              <content>2</content>
+                                                                                            </value>
+                                                                                          </values>
+                                                                                          <values>
+                                                                                            <partial type="StaticFuncCall">
+                                                                                              <StaticFuncCall name="local:insert" tailCall="false">
+                                                                                                <VarRef>
+                                                                                                  <Var name="$x" id="0"/>
+                                                                                                </VarRef>
+                                                                                                <FnTail name="tail(items)">
+                                                                                                  <VarRef>
+                                                                                                    <Var name="$seq" id="1"/>
+                                                                                                  </VarRef>
+                                                                                                </FnTail>
+                                                                                              </StaticFuncCall>
+                                                                                              <values>
+                                                                                                <partial type="Let">
+                                                                                                  <Var name="$x"/>
+                                                                                                  <VarRef>
+                                                                                                    <Var name="$x" id="0"/>
+                                                                                                  </VarRef>
+                                                                                                  <partial type="return">
+                                                                                                    <values>
+                                                                                                      <partial type="Let">
+                                                                                                        <Var name="$seq"/>
+                                                                                                        <FnTail name="tail(items)">
+                                                                                                          <VarRef>
+                                                                                                            <Var name="$seq" id="1"/>
+                                                                                                          </VarRef>
+                                                                                                        </FnTail>
+                                                                                                        <partial type="return">
+                                                                                                          <values>
+                                                                                                            <partial type="If">
+                                                                                                              <partial type="Cond">
+                                                                                                                <values>
+                                                                                                                  <partial type="Path">
+                                                                                                                    <epath>
+                                                                                                                      <FnEmpty name="empty(items)">
+                                                                                                                        <VarRef>
+                                                                                                                          <Var name="$seq" id="1"/>
+                                                                                                                        </VarRef>
+                                                                                                                      </FnEmpty>
+                                                                                                                    </epath>
+                                                                                                                  </partial>
+                                                                                                                  <value>
+                                                                                                                    <content>true</content>
+                                                                                                                  </value>
+                                                                                                                </values>
+                                                                                                              </partial>
+                                                                                                              <partial type="Then">
+                                                                                                                <values>
+                                                                                                                  <partial type="Path">
+                                                                                                                    <epath>
+                                                                                                                      <VarRef>
+                                                                                                                        <Var name="$x" id="0"/>
+                                                                                                                      </VarRef>
+                                                                                                                    </epath>
+                                                                                                                  </partial>
+                                                                                                                  <value>
+                                                                                                                    <content>1</content>
+                                                                                                                  </value>
+                                                                                                                </values>
+                                                                                                              </partial>
+                                                                                                            </partial>
+                                                                                                            <value>
+                                                                                                              <content>1</content>
+                                                                                                            </value>
+                                                                                                          </values>
+                                                                                                        </partial>
+                                                                                                      </partial>
+                                                                                                      <value>
+                                                                                                        <content>1</content>
+                                                                                                      </value>
+                                                                                                    </values>
+                                                                                                  </partial>
+                                                                                                </partial>
+                                                                                                <value>
+                                                                                                  <content>1</content>
+                                                                                                </value>
+                                                                                              </values>
+                                                                                            </partial> union
+<value>
+                                                                                              <content>1</content>
+                                                                                            </value>
+                                                                                          </values>
+                                                                                        </List>
+                                                                                      </epath>
+                                                                                    </partial>
+                                                                                    <value>
+                                                                                      <content>2</content>
+                                                                                    </value>
+                                                                                    <value>
+                                                                                      <content>1</content>
+                                                                                    </value>
+                                                                                  </values>
+                                                                                </partial>
+                                                                              </partial>
+                                                                              <value>
+                                                                                <content>2</content>
+                                                                                <content>1</content>
+                                                                              </value>
+                                                                            </values>
+                                                                          </partial>
+                                                                        </partial>
+                                                                        <value>
+                                                                          <content>2</content>
+                                                                          <content>1</content>
+                                                                        </value>
+                                                                      </values>
+                                                                    </partial>
+                                                                  </partial>
+                                                                  <value>
+                                                                    <content>2</content>
+                                                                  </value>
+                                                                  <value>
+                                                                    <content>1</content>
+                                                                  </value>
+                                                                </values>
+                                                              </partial>
+                                                            </partial>
+                                                            <value>
+                                                              <content>2</content>
+                                                            </value>
+                                                            <value>
+                                                              <content>1</content>
+                                                            </value>
+                                                          </values>
+                                                        </partial> union
+<value>
+                                                          <content>2</content>
+                                                        </value>
+                                                        <value>
+                                                          <content>1</content>
+                                                        </value>
+                                                      </values>
+                                                    </List>
+                                                  </epath>
+                                                </partial>
+                                                <value>
+                                                  <content>3</content>
+                                                </value>
+                                                <value>
+                                                  <content>2</content>
+                                                </value>
+                                                <value>
+                                                  <content>1</content>
+                                                </value>
+                                              </values>
+                                            </partial>
+                                          </partial>
+                                          <value>
+                                            <content>3</content>
+                                            <content>2</content>
+                                            <content>1</content>
+                                          </value>
+                                        </values>
+                                      </partial>
+                                    </partial>
+                                    <value>
+                                      <content>3</content>
+                                      <content>2</content>
+                                      <content>1</content>
+                                    </value>
+                                  </values>
+                                </partial>
+                              </partial>
+                              <value>
+                                <content>3</content>
+                              </value>
+                              <value>
+                                <content>2</content>
+                              </value>
+                              <value>
+                                <content>1</content>
+                              </value>
+                            </values>
+                          </partial>
+                        </partial>
+                        <value>
+                          <content>3</content>
+                        </value>
+                        <value>
+                          <content>2</content>
+                        </value>
+                        <value>
+                          <content>1</content>
+                        </value>
+                      </values>
+                    </partial> union
+<value>
+                      <content>3</content>
+                    </value>
+                    <value>
+                      <content>2</content>
+                    </value>
+                    <value>
+                      <content>1</content>
+                    </value>
+                  </values>
+                </partial>
+              </partial>
+              <value>
+                <content>3</content>
+                <content>2</content>
+                <content>1</content>
+              </value>
+            </values>
+          </partial>
+        </partial>
+        <value>
+          <content>3</content>
+        </value>
+        <value>
+          <content>2</content>
+        </value>
+        <value>
+          <content>1</content>
+        </value>
+      </values>
+    </partial> union
+<value>
+      <content>3</content>
+    </value>
+    <value>
+      <content>2</content>
+    </value>
+    <value>
+      <content>1</content>
+    </value>
+  </values>
+</StaticFuncCall>
