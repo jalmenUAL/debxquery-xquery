@@ -21,6 +21,7 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   <context>{$context/*}</context>
   <position>{$i}</position></var>
   }</context>,$static) 
+   
   return
   if (exists($where))
   then
@@ -35,28 +36,31 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   return
   if ($rwhere/values/value/text()=true())   
   then 
-      <partial type="For">{$var}{$path}<position>{$i}</position>
+      <partial type="For">{$var}<epath>{$path}{$context}</epath><position>{$i}</position>
       <partial type="where">{$rwhere/values}</partial>
       <partial type="return">{$return/values}</partial></partial>
       union
       ($return/values/value)
   else 
-     <partial type="For">{$var}{$path}<position>{$i}</position>
+     <partial type="For">{$var}<epath>{$path}{$context}</epath><position>{$i}</position>
       <partial type="where">{$rwhere/values}</partial>
-      <partial type="return"></partial></partial> union
+      <partial type="return"></partial></partial> 
+      (:union
       <value> 
-      </value>
+      </value>:)
   ) (:nowhere:)
   else 
-  <partial type="For">{$var}{$path}<position>{$i}</position>
+  <partial type="For">{$var}<epath>{$path}{$context}</epath><position>{$i}</position>
   <partial type="return">{$return/values}</partial>
   </partial> union
   ($return/values/value) 
   (:nopath:)
 )
-  else (<partial type="For">{$var}{$path} 
-  <partial type="return"></partial></partial>) union <value>
-  </value>}
+  else (<partial type="For">{$var}<epath>{$path}{$context}</epath> 
+  <partial type="return"></partial></partial>) 
+  union <value>
+  </value>
+  }
   
   </values></For>  
 };
@@ -78,6 +82,7 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   <context>{$context/*}</context>
   <position>{$i}</position></var>
   }</context>,$static) 
+  
   return
   if (exists($where))
   then 
@@ -92,21 +97,22 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   return
   if ($rwhere/values/value/text()=true()) 
   then 
-         (<partial type="Let">{$var}{$path}
+         (<partial type="Let">{$var}<epath>{$path}{$context}</epath>
         <partial type="where">{$rwhere/values}</partial>
         <partial type="return">{$return/values}</partial>
         </partial>)  union
         ($return/values/value)  
   else 
-        (<partial type="Let">{$var}{$path}
+        (<partial type="Let">{$var}<epath>{$path}{$context}</epath>
         <partial type="where">{$rwhere/values}
         </partial><partial type="return"></partial>
-        </partial>) union
+        </partial>) 
+        (:union
         <value> 
-        </value>
+        </value>:)
   ) (: nowhere :)
   else  
-        (<partial type="Let">{$var}{$path}
+        (<partial type="Let">{$var}<epath>{$path}{$context}</epath>
         <partial type="return">{$return/values}</partial>
        </partial>) union
         ($return/values/value)
@@ -155,16 +161,29 @@ declare function local:exp($exp,$context,$static)
    else
    let $path := string-join(for-each($exp,function($x){local:Path($x,$context,$static)}),"/")
    let $partial :=
-   (if (count($exp/*)>1) then  
+   (if (name($exp)="Union" or
+        name($exp)="Intersect" or
+        name($exp)="CmpG" or
+        name($exp)= "CmpN" or
+        name($exp)= "And" or
+        name($exp)= "Or" or
+        name($exp)= "List") then  
    element {name($exp)} {$exp/@*,for-each($exp/*,function($x){local:exp($x,$context,$static)/values})}
    else $exp)
    return
    if (exists(xquery:eval($path))) then  
-   <path><values>{(<partial type="Path">{<epath>{$partial}</epath>}</partial>) union (for $x in xquery:eval($path) return
-   <value>
-          {$x}</value>)}</values></path>
+   <path>
+   <values>{
+     (<partial type="Path">{<epath>{$partial,$context}</epath>}</partial>) 
+     union 
+     (for $x in xquery:eval($path) return   <value>{$x}</value>)}
+    </values></path>
    else  
-   <path><values>{<partial type="Path">{<epath>{$partial}</epath>}</partial> union <value></value>}</values></path>
+   <path><values>{
+     <partial type="Path">{<epath>{$partial,$context}</epath>}</partial> 
+     union 
+     <value></value>}
+   </values></path>
    
 }; 
 
@@ -191,13 +210,14 @@ declare function local:CElem($query,$context,$static)
 let $exps :=  local:exps(tail($query/*),$context,$static)
 return
 <CElem>
-<values>{(<partial type="CElem">
-     {$exps/values}</partial>)  (<value>
-      element {data($query/QNm/@value)} 
-      {$exps/values/value/(node()|@*)}
-      </value>)
-}</values>
-</CElem>  
+<values>
+<partial type="CElem">{$exps/values}</partial>  
+ <value>
+ {element {data($query/QNm/@value)} 
+ {$exps/values/value/(node()|@*)}}
+ </value>
+ </values>
+ </CElem>  
 };
 
 declare function local:CAttr($query,$context,$static)
@@ -205,12 +225,13 @@ declare function local:CAttr($query,$context,$static)
 let $exps := local:exps(tail($query/*),$context,$static)
 return
 <CAttr>
-<values>{(<partial type="CAttr">
-     {$exps/values}</partial>)  (<value>
-  attribute {data($query/QNm/@value)} 
-  {data($exps/values/value/(node()|@*))}
-  </value>)
-}</values>
+<values>
+<partial type="CAttr">{$exps/values}</partial>  
+<value>
+ { attribute {data($query/QNm/@value)} 
+  {data($exps/values/value/(node()|@*))}}
+</value>
+</values>
 </CAttr>
 };
 
@@ -408,6 +429,14 @@ declare function local:Path($step,$context,$static)
 
 declare function local:showPath($step,$context)
 {  
+   if (name($step)="Union" or
+        name($step)="Intersect" or
+        name($step)="CmpG" or
+        name($step)= "CmpN" or
+        name($step)= "And" or
+        name($step)= "Or" or
+        name($step)= "List") then ()
+   else
    if (name($step)="ContextValue") then "."
    else
    if (name($step)="Root") then "root()" 
@@ -421,7 +450,7 @@ declare function local:showPath($step,$context)
    if (name($step)="FnCollection") then 
             "collection('" || data($step/Str/@value) || "')"
    else
-   (:
+   
    if (name($step)="VarRef") then 
              let $varn := $step/Var/@name
              let $con := ($context/*[name/Var/@name=data($varn)])[last()]
@@ -436,21 +465,8 @@ declare function local:showPath($step,$context)
              else
               "(" || $varn        
              || ")"   || "[" || $position || "]"
-   :)    
-    if (name($step)="VarRef") then       
-    let $varn := $step/Var/@name
-             let $con := ($context/*[name/Var/@name=data($varn)])[last()]
-             let $path := 
-             $con/path
-             let $context := 
-             $con/context
-             let $position := $con/position/text()
-             return
-             if ($position=0) then 
-             local:showPath($path/*,$context)    
-             else
-              "(" || local:showPath($path/*,$context)        
-             || ")"   || "[" || $position || "]"                    
+       
+               
    else
    if (name($step)="CachedPath") 
           then string-join(for-each($step/*,function($x){local:showPath($x,$context)}),"/")               
@@ -587,15 +603,22 @@ declare function local:exec($string_query)
 
 declare function local:epaths($string_query)
 {
-  let $path := local:trace($string_query) (://item/../result[empty(./(node()|@*)) or text()="false"]:)
-  return $path
-  (:let $context := local:trace($string_query)//item[empty(./node()) and @type=$type]/../context
+  let $result :=
+  (
+  for $empty in local:trace($string_query)//values/value[empty(./(node() |@*))]/../partial
+  let $path := ($empty/epath/*)[1]
+  let $context := ($empty/epath/*)[2]
+  let $sp := local:showPath($path,$context)
+  let $c := local:print_context($context)
+  return 
+  if ($sp) then  "Empty path found in '" ||  $sp || "'" ||
+  (if (not($c=<a/>)) then (" where " || $c) else "") else ()
+  )
   return
-  if (not(local:showPath($path,$context)="()")) then
-                 "Empty path found in '" || 
-                 local:showPath($path,$context) || 
-                 "' where " || local:print_context($context)
-  else "No empty path found":)
+  if (not(empty($result))) then $result
+  else "Empty path not found" 
+  
+   
 };
 
 declare function local:print_context($context)
@@ -610,7 +633,7 @@ declare function local:print_context($context)
   }</a>
 };
 
-declare function local:calls($string_query)
+declare function local:pathcalls($string_query)
 {
   let $query := xquery:parse($string_query)
   let $trace := 
@@ -618,36 +641,21 @@ declare function local:calls($string_query)
   <context></context>,
   $query/QueryPlan/*[name(.)="StaticFunc"])
   let $static := $query/QueryPlan/*[name(.)="StaticFunc"]
-  for $p in $trace//epath
-  let $context := $p/*[1]
-  let $exp := $p/*[2]
-  return local:Path($exp,$context,$static)  
+  for $p in $trace//partial/epath
+  let $exp := $p/*[1]
+  let $context := $p/*[2]
+  return local:showPath($exp,$context)
 };
 
- local:trace("
-(: declare function local:factorial($n)
+ local:pathcalls("
+<bib>
  {
-   if ($n=0) then 1 else $n*local:factorial($n -1)
- };
- local:factorial(5)
-:)
- declare function local:insert($x,$seq)
-{
-  if (empty($seq)) then ($x)
-  else if ($x <= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
-};
-
-declare function local:insort($seq)
-{
-  if (empty($seq)) then ()
-  else
-  local:insert(head($seq),local:insort(tail($seq)))
-};
-
-local:insort((1,2,3,4))
-
- 
-  ") 
-
-
+  for $b in db:open('bstore1')/bib/book
+  where $b/publisher = 'Addison-Wesley' and $b/@year > 1991
+  return
+    <book year='{ $b/@year }'>
+     { $b/title }
+    </book>
+ }
+</bib>   ") 
  
