@@ -27,9 +27,9 @@ declare function local:showCall($epath)
              let $position := $con/position/text()
              return
              if ($position=0) then 
-             data($varn)   
+             local:showPath($path/*,$context)   
              else
-              "(" || data($varn)       
+              "(" || local:showPath($path/*,$context)     
              || ")"   || "[" || $position || "]"
        
                
@@ -41,10 +41,10 @@ declare function local:showCall($epath)
           then string-join(for-each($step/*,function($x){local:showCall(<epath>{$x,$context}</epath>)}),"/")      
    else   
    if (name($step)="Union") then   "(" || 
-                   string-join(for-each($step/values/partial/epath,function($x){local:showCall($x)}),"|") || ")"  
+                   string-join(for-each($step/values/partial/*,function($x){local:showCall($x)}),"|") || ")"  
    else
    if (name($step)="InterSect") then   "(" || 
-                   string-join(for-each($step/values/partial/epath,function($x){local:showCall($x)}),"intersect") || ")"  
+                   string-join(for-each($step/values/partial/*,function($x){local:showCall($x)}),"intersect") || ")"  
    else
    if (name($step)="MixedPath")
                    then
@@ -65,7 +65,7 @@ declare function local:showCall($epath)
    if (name($step)="CachedStep") then $step/@axis || "::" || $step/@test || "[" || 
                             string-join(for-each($step/*,function($x){local:showCall(<epath>{$x,$context}</epath>)}),"/") || "]"             else           
    if (name($step)="FnNot") 
-          then "not(" || local:showCall($step/values/partial/epath) || ")" 
+          then "not(" || local:showCall($step/values/partial/*) || ")" 
    else
    if (name($step)="Quantifier") 
           then $step/@type || " " || $step/GFLWOR/For/Var/@name || " in " || 
@@ -84,33 +84,33 @@ declare function local:showCall($epath)
    if (name($step)="StaticFuncCall")  then 
              let $args := string-join(for $exp in $step/* return [local:showCall(<epath>{$exp,$context}</epath>)],",")
              return 
-             data($step/@name) || "(" || $args || ")"       
+             data($step/@name) || "(" || $args || ")"     
    else 
    if (name($step)="CmpG") then
-              let $cond1 := local:showCall(($step/values/partial/epath)[1])
-              let $cond2 := local:showCall(($step/values/partial/epath)[2])
-              return "(" || $cond1 || $step/@op || $cond2 || ")"  
+              let $cond1 := local:showCall(($step/values/partial/*)[1])
+              let $cond2 := local:showCall(($step/values/partial/*)[2])
+              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")"  
    else
    if (name($step)="Arith") then
-              let $cond1 := local:showCall(($step/values/partial/epath)[1])
-              let $cond2 := local:showCall(($step/values/partial/epath)[2])
-              return "(" || $cond1 || $step/@op || $cond2 || ")"            
+              let $cond1 := local:showCall(($step/values/partial/*)[1])
+              let $cond2 := local:showCall(($step/values/partial/*)[2])
+              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")"            
    else 
    if (name($step)="CmpN") then
-              let $cond1 := local:showCall(($step/values/partial/epath)[1])
-              let $cond2 := local:showCall(($step/values/partial/epath)[2])
-              return "(" || $cond1 || $step/@op || $cond2 || ")"             
+              let $cond1 := local:showCall(($step/values/partial/*)[1])
+              let $cond2 := local:showCall(($step/values/partial/*)[2])
+              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")"             
    else 
    if (name($step)="And") then
-                 string-join(for-each($step/values/partial/epath,function($x){local:showCall($x)})," and ")        
+                 string-join(for-each($step/values/partial/*,function($x){local:showCall($x)})," and ")        
    else 
    if (name($step)="Or") then
-           string-join(for-each($step/values/partial/epath,function($x){local:showCall($x)})," or ")         
+           string-join(for-each($step/values/partial/*,function($x){local:showCall($x)})," or ")         
    else    
    if (name($step)="Empty") then"()"
    else
    if (name($step)="List") then "(" || 
-   string-join(for-each($step/values/partial/epath,function($x){local:showCall($x)})," , ")   || ")"
+   string-join(for-each($step/values/partial/*,function($x){local:showCall($x)})," , ")   || ")"
    else  
    if ($step/@type="xs:string") then  "'" || data($step/@value)|| "'"
    else
@@ -291,7 +291,7 @@ declare function local:exp($exp,$context,$static)
         name($exp)= "Ar" or
         name($exp)= "And" or
         name($exp)= "Or" or
-        name($exp)= "List") then  
+        name($exp)= "List") then  (: CHANGE /partial :)
    element {name($exp)} {$exp/@*,for-each($exp/*,function($x){local:exp($x,$context,$static)/values})}
    else $exp)
    return
@@ -430,10 +430,11 @@ $staticfun/*
 }</GFLWOR>,
 $context, 
 $static)
-return 
+return (: CHANGE /partial :)
 <StaticFuncCall>
-{<values>
-{<partial type="StaticFuncCall">{$exp,$gflwor/values}</partial> union
+{<values> 
+{<partial type="StaticFuncCall">{for-each($exp/*,function($x){<arg>{local:exp($x,$context,$static)/values}</arg>}),
+$gflwor/values}</partial> union
 ($gflwor/values/value)
 }</values>
 }</StaticFuncCall>
@@ -553,16 +554,6 @@ declare function local:Path($step,$context,$static)
 
 declare function local:showPath($step,$context)
 {  
-   if (name($step)="Union" or
-        name($step)="Intersect" or
-        name($step)="Arith" or
-        name($step)="CmpG" or
-        name($step)="FnNot" or
-        name($step)= "CmpN" or
-        name($step)= "And" or
-        name($step)= "Or" or
-        name($step)= "List") then ()
-   else
    if (name($step)="ContextValue") then "."
    else
    if (name($step)="Root") then "root()" 
@@ -587,9 +578,9 @@ declare function local:showPath($step,$context)
              let $position := $con/position/text()
              return
              if ($position=0) then 
-             $varn   
+             local:showPath($path/*,$context)   
              else
-              "(" || $varn        
+              "(" ||  local:showPath($path/*,$context)         
              || ")"   || "[" || $position || "]"
        
                
@@ -756,38 +747,42 @@ declare function local:print_context($context)
   data(($context/var/name/Var/@name)[$i]) || 
   "=" || 
   local:showPath(($context/var/path/*)[$i],$context)
-  || "[" || data(($context/var/position)[$i]) || "]"
   }</a>
 };
 
 declare function local:calls($string_query)
 {
-  let $query := xquery:parse($string_query)
+   let $query := xquery:parse($string_query)
   let $trace := 
   local:exps($query/QueryPlan/*[not(name(.)="StaticFunc")],
   <context></context>,
   $query/QueryPlan/*[name(.)="StaticFunc"])
   let $static := $query/QueryPlan/*[name(.)="StaticFunc"]
-  for $p in $trace//values[partial/epath]
-  let $epath := $p/partial/epath
-  let $context := $p/partial/epath/context
-  let $values := $p/value/(node()|@*)
+  for $p in $trace//values/partial
+  let $epath := $p/*
+  let $context := $p/*/context
+  let $values := $p/../value/(node()|@*)
   let $c := local:print_context($context)
   return
   
-  if (not(local:showCall($epath)="()")) then 
-  "Can be " || local:showCall($epath) || " equal to " || "'" || string-join($values,"' and '") || "'" || (if (not($c=<a/>)) then (" when " || $c) else "")  || "?"  else () 
+  if (not(local:showCall($epath)="()") and  exists(local:showCall($epath))) then 
+  "Can be " || local:showCall($epath) || " equal to " || "'" || string-join($values,"' and '") || "'" || "?"  else () 
+  
 };
 
  local:calls("
-<bib>
- {
-  for $b in db:open('bstore1')/bib/book
-  where $b/publisher = 'Addison-Wesley' and $b/@year > 1991
-  return
-    <book year='{ $b/@year }'>
-     { $b/title }
-    </book>
- }
-</bib>  ") 
+declare function local:insert($x,$seq)
+{
+  if (empty($seq)) then ($x)
+  else if ($x <= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
+};
+
+declare function local:insort($seq)
+{
+  if (empty($seq)) then ()
+  else
+  local:insert(head($seq),local:insort(tail($seq)))
+};
+
+local:insort((2,1,3))  ") 
  
