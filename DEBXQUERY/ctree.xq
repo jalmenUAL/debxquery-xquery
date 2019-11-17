@@ -35,7 +35,7 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   let $rwhere := local:Where($where,
   $context,$static)
   return
-  if ($rwhere/values/value/text()=true())   
+  if ($rwhere/values/value/text()=true()) (:or exists($rwhere/values/value/node())):)
   then 
       <partial type="For">     
       <partial type="where">{$rwhere/values}</partial>
@@ -93,7 +93,7 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   (let $rwhere := local:Where($where,
   $context,$static)
   return
-  if ($rwhere/values/value/text()=true()) 
+  if ($rwhere/values/value/text()=true()) (:or exists($rwhere/values/value/node())):) 
   then 
          (<partial type="Let">    
         <partial type="where">{$rwhere/values}</partial>
@@ -167,6 +167,7 @@ declare function local:exp($exp,$context,$static)
          name($exp)= "FnNot" or
         name($exp)= "And" or
         name($exp)= "Or" or
+        substring(name($exp),1,2)="Fn" or
         name($exp)= "List") then   
    element {name($exp)} {$exp/@*,for-each($exp/*,function($x){local:exp($x,$context,$static)/values})}
    else $exp)
@@ -242,7 +243,7 @@ let $then := ($query/*)[2]
 let $else := ($query/*)[3]
 let $bcond := local:exp($cond,$context,$static)
 return
-if ($bcond/values/value/text()=true()) 
+if ($bcond/values/value/text()=true()) (:or exists($bcond/values/value/node())) :)
 then 
 let $bthen := local:exp($then,$context,$static)
 return
@@ -831,12 +832,14 @@ declare function local:calls($string_query)
       and not (($epath/*)[1]/@type))
   then
   let $context := $p/partial/epath/context
-  let $values := $p/value/(node()|@*)
+  let $values :=  
+  if ($p/value/node()) then string-join(serialize($p/value/node()),",")    
+  else  string-join($p/value/@*,",")
   let $c := local:print_context($context)
   let $sc := local:showCall($epath)
   return
   if (not($sc="()")) then
-  "Can be " || $sc || " equal to " || "(" || string-join($values,",") || ")" || "?" 
+  "Can be " || $sc || " equal to " || "(" ||  $values || ")" || "?" 
   else () 
   else ()
    
@@ -861,6 +864,7 @@ declare function local:insort($seq)
   local:insert(head($seq),local:insort(tail($seq)))
 };
 
-local:insort((2,1,3))   ") 
+local:insort((2,1,3))
+  ")
 
  
