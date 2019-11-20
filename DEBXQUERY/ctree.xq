@@ -804,6 +804,58 @@ declare function local:showCall($epath)
    else "()"
 }; 
 
+declare function local:treecalls($string_query)
+{
+   let $query := xquery:parse($string_query)
+  let $trace := 
+  local:exps($query/QueryPlan/*[not(name(.)="StaticFunc")],
+  <context></context>,
+  $query/QueryPlan/*[name(.)="StaticFunc"])
+  let $static := $query/QueryPlan/*[name(.)="StaticFunc"]
+  return local:tcalls($trace/values,$static)
+};
+
+declare function local:tcalls($trace,$static)
+{
+  if ($trace/partial/epath) then
+  for $p in $trace/partial
+  return
+ 
+  let $epath := ($p/epath)[1]
+  return
+   if (not(name(($epath/*)[1])="Union") and
+      not(name(($epath/*)[1])="Intersect") and
+      not(name(($epath/*)[1])="FnNot") and
+      not(name(($epath/*)[1])="VarRef") and
+      not(name(($epath/*)[1])="Quantifier") and
+      not(substring(name(($epath/*)[1]),1,2)="Fn") and
+      not(name(($epath/*)[1])="CmpG") and
+      not(name(($epath/*)[1])="Arith") and
+      not(name(($epath/*)[1])="CmpN") and
+      not(name(($epath/*)[1])="And") and
+      not(name(($epath/*)[1])="Or") and
+      not(name(($epath/*)[1])="Empty") and
+      not(name(($epath/*)[1])="List") 
+      and not (($epath/*)[1]/@type))
+  then
+  let $context := $p/epath/context
+  let $values :=  
+  if ($p/../value/node()) then string-join(serialize($p/../value/node()),",")    
+  else  string-join($p/../value/@*,",")
+  let $c := local:print_context($context)
+  let $sc := local:showCall($epath)
+  return
+  if (not($sc="()")) then
+  <question>{
+  "Can be " || $sc || " equal to " || "(" ||  $values || ")" || "?" }
+  {local:tcalls($p/values,$static)}</question>
+  
+  else local:tcalls($p/values,$static)
+  else local:tcalls($p/values,$static)
+  else 
+    for-each($trace/partial,function($x){local:tcalls($x/partial/values,$static)})
+};
+
 declare function local:calls($string_query)
 {
   let $query := xquery:parse($string_query)
@@ -850,7 +902,7 @@ declare function local:calls($string_query)
  
 
 
- local:calls("
+ local:treecalls("
 declare function local:insert($x,$seq)
 {
   if (empty($seq)) then ($x)
@@ -864,7 +916,7 @@ declare function local:insort($seq)
   local:insert(head($seq),local:insort(tail($seq)))
 };
 
-local:insort((2,1,3))
+local:insort((2,1))
   ")
 
  
