@@ -1,9 +1,6 @@
-
-
-
 (: GROUP BY, ORDER BY  :)
- (:<partial type="bound"><epath>{$path}{$context}</epath>{$vpath}</partial>:)(:<position>{$i}</position>:)
-
+(: CHECK WHETHER <value></value> should be removed for path conditions :)
+ 
 declare function local:For($for,$groupby,$orderby,$where,$return,$context,$static)
 { 
   let $var := $for/Var
@@ -311,10 +308,10 @@ return
 <StaticFuncCall>
 {<values> 
 {
-<partial type="StaticFuncCall">{<epath>{$exp,$context}</epath>,$gflwor/values}</partial>
-union
-for-each($exp/*,
-function($x){<partial type="arg">{<epath>{$x,$context}</epath>,local:exp($x,$context,$static)/values}</partial>})
+<partial type="StaticFuncCall">{for-each($exp/*,
+function($x){<partial type="arg">{<epath>{$x,$context}</epath>,local:exp($x,$context,$static)/values}</partial>}),<epath>{$exp,$context}</epath>,$gflwor/values
+}</partial>
+
 union
 ($gflwor/values/value)
 }</values>
@@ -823,7 +820,7 @@ declare function local:tcalls($trace,$static)
  
   let $epath := ($p/epath)[1]
   return
-   if (not(name(($epath/*)[1])="Union") and
+  if (not(name(($epath/*)[1])="Union") and
       not(name(($epath/*)[1])="Intersect") and
       not(name(($epath/*)[1])="FnNot") and
       not(name(($epath/*)[1])="VarRef") and
@@ -840,23 +837,37 @@ declare function local:tcalls($trace,$static)
   then
   let $context := $p/epath/context
   let $values :=  
-  if ($p/../value/node()) then string-join(serialize($p/../value/node()),",")    
-  else  string-join($p/../value/@*,",")
+  if ($p/values/value/node()) then string-join(serialize($p/values/value/node()),",")    
+  else  string-join($p/values/value/@*,",")
   let $c := local:print_context($context)
   let $sc := local:showCall($epath)
   return
   if (not($sc="()")) then
   <question>{
   "Can be " || $sc || " equal to " || "(" ||  $values || ")" || "?" }
-  {local:tcalls($p/values,$static)}</question>
+  {
+   for-each($trace/partial,
+    function($x){local:tcalls($x/partial/values,
+    $static)}) union local:tcalls($p/values,$static)
+  }
+  </question>
   
-  else local:tcalls($p/values,$static)
-  else local:tcalls($p/values,$static)
+  else ()
   else 
-    for-each($trace/partial,function($x){local:tcalls($x/partial/values,$static)})
+ 
+   
+     for-each($trace/partial,
+    function($x){local:tcalls($x/partial/values,
+    $static)}) union  local:tcalls($p/values,$static)
+  else 
+    for-each($trace/partial,
+    function($x){local:tcalls($x/partial/values,
+    $static)}) 
+     
+    
 };
 
-declare function local:calls($string_query)
+declare function local:allcalls($string_query)
 {
   let $query := xquery:parse($string_query)
   let $trace := 
@@ -916,7 +927,7 @@ declare function local:insort($seq)
   local:insert(head($seq),local:insort(tail($seq)))
 };
 
-local:insort((2,1))
+local:insort((2,1,3))
   ")
 
  
