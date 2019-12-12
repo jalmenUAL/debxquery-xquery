@@ -19,4 +19,4 @@ declare function local:insort($seq)
   local:insert(head($seq),local:insort(tail($seq)))
 };
 
-local:insort((2,1,3))
+local:insort((2,1))

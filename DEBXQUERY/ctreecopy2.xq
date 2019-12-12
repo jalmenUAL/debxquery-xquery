@@ -170,13 +170,13 @@ declare function local:exp($exp,$context,$static)
    if (exists($vpath)) then  
    <path>
    <values>{
-     (<partial type="Path">{<epath>{$partial,$context}</epath>}</partial>) 
+     (<epartial type="Path">{<epath>{$partial,$context}</epath>}</epartial>) 
      union 
      (for $x in $vpath return   <value>{$x}</value>)}
     </values></path>
    else  
    <path><values>{
-     <partial type="Path">{<epath>{$partial,$context}</epath>}</partial> 
+     <epartial type="Path">{<epath>{$partial,$context}</epath>}</epartial> 
    }
    </values></path>
    
@@ -848,17 +848,16 @@ declare function local:treecalls($string_query)
   <context></context>,
   $query/QueryPlan/*[name(.)="StaticFunc"])
   let $static := $query/QueryPlan/*[name(.)="StaticFunc"]
-  return local:tcalls(<partial>{$trace/values}</partial>,
-  $static)
+  return local:tcalls($trace/values,$static)
 };
 
 declare function local:tcalls($trace,$static)
 {
-  if ($trace/epath) 
+  if ($trace/partial/epath) 
   then
-  let $epath := $trace/epath 
-  let $values := if ($trace/../value/node()) then $trace/../value/node()
-  else data($trace/../value/@*)
+  for $p in $trace/partial
+  return
+  let $epath := ($p/epath)[1]
   return
   if (not(name(($epath/*)[1])="Union") and
       not(name(($epath/*)[1])="Intersect") and
@@ -874,56 +873,90 @@ declare function local:tcalls($trace,$static)
       not(name(($epath/*)[1])="Empty") and
       not(name(($epath/*)[1])="List") 
       and not (($epath/*)[1]/@type))
-  
-  then 
-  let $context := $epath/context 
+  then
+  let $context := $p/epath/context
+  let $values :=  
+  if ($p/values/value/node()) then string-join(serialize($p/values/value/node()),",")    
+  else  string-join($p/values/value/@*,",")
   let $c := local:print_context($context)
   let $sc := local:showCall($epath)
   return
-      if (not($sc="()")) then
-      <question>{
-      "Can be " || $sc || " equal to " || "(",  $values, ")" || "?" }
-       {
-       for-each($epath/partial,
-       function($x){local:tcalls($x,
-       $static)})  
-       }
-      </question>  
-      else ()
-  else 
-    for-each($epath/*,
-    function($x){local:tcalls($x,
-    $static)})  
-  
-   
-  else 
-  if ($trace/partial) then
-     for-each($trace/partial,
-     function($x){local:tcalls($x,$static)})
-   else 
-  if ($trace/values) then
-    for-each($trace/values/partial,
-     function($x){local:tcalls($x,$static)})
+  if (not($sc="()")) then
+  <question>{
+  "Can be " || $sc || " equal to " || "(" ||  $values || ")" || "?" }
+  {
+   for-each($trace/partial,
+    function($x){local:tcalls($x/partial/values,
+    $static)}) union local:tcalls($p/values,$static)
+  }
+  </question>  
   else ()
+  else 
+    for-each($trace/partial,
+    function($x){local:tcalls($x/values,
+    $static)}) union  local:tcalls($p/values,$static)
+  else   
+  for-each($trace/partial,
+    function($x){local:tcalls($x/values,
+    $static)}) 
 };
 
- 
-
-local:treecalls("
-declare function local:insert($x,$seq)
+(:
+declare function local:allcalls($string_query)
 {
-  if (empty($seq)) then ($x)
-  else if ($x >= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
+  let $query := xquery:parse($string_query)
+  let $trace := 
+  local:exps($query/QueryPlan/*[not(name(.)="StaticFunc")],
+  <context></context>,
+  $query/QueryPlan/*[name(.)="StaticFunc"])
+  let $static := $query/QueryPlan/*[name(.)="StaticFunc"]
+  for $p in $trace//values
+  let $epath := ($p/partial/epath)[1]
+  
+  return
+   if (not(name(($epath/*)[1])="Union") and
+      not(name(($epath/*)[1])="Intersect") and
+      not(name(($epath/*)[1])="FnNot") and
+      not(name(($epath/*)[1])="VarRef") and
+      not(name(($epath/*)[1])="Quantifier") and
+      not(substring(name(($epath/*)[1]),1,2)="Fn") and
+      not(name(($epath/*)[1])="CmpG") and
+      not(name(($epath/*)[1])="Arith") and
+      not(name(($epath/*)[1])="CmpN") and
+      not(name(($epath/*)[1])="And") and
+      not(name(($epath/*)[1])="Or") and
+      not(name(($epath/*)[1])="Empty") and
+      not(name(($epath/*)[1])="List") 
+      and not (($epath/*)[1]/@type))
+  then
+  let $context := $p/partial/epath/context
+  let $values :=  
+  if ($p/value/node()) then string-join(serialize($p/value/node()),",")    
+  else  string-join($p/value/@*,",")
+  let $c := local:print_context($context)
+  let $sc := local:showCall($epath)
+  return
+  if (not($sc="()")) then
+  "Can be " || $sc || " equal to " || "(" ||  $values || ")" || "?" 
+  else () 
+  else ()
+   
+  
+  
 };
+:)
 
-declare function local:insort($seq)
-{
-  if (empty($seq)) then ()
-  else
-  local:insert(head($seq),local:insort(tail($seq)))
-};
-
-local:insort((2,1)) 
+local:trace("
+<bib>
+ {
+  for $b in db:open('bstore1')/bib/book
+  where $b/publisher = 'Addison-Wesley' and $b/@year > 1991
+  return
+    <book year='{ $b/@year }'>
+     { $b/title }
+    </book>
+ }
+</bib>  
   ") 
 
  
