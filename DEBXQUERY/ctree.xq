@@ -150,20 +150,21 @@ declare function local:exp($exp,$context,$static)
    else
    let $path := string-join(for-each($exp,
    function($x){local:Path($x,$context,$static)}),"/")
-   let $partial :=
+   let $partial := 
    (if (name($exp)="Union" or
         name($exp)="Intersect" or
         name($exp)="CmpG" or
         name($exp)= "CmpN" or
         name($exp)= "Arith" or
-         name($exp)= "FnNot" or
+        name($exp)= "FnNot" or
         name($exp)= "And" or
-        name($exp)= "Or" or
-        substring(name($exp),1,2)="Fn" or
-        name($exp)= "List") then   
+        name($exp)= "Or"  or
+        substring(name($exp),1,2)="Fn"  or
+        name($exp)= "List"  ) then   
    element {name($exp)} {$exp/@*,for-each($exp/*,
    function($x){local:exp($x,$context,$static)/values})}
    else $exp)
+   
    return
    let $vpath := xquery:eval($path)
    return
@@ -308,10 +309,13 @@ return
 {
 <partial type="StaticFuncCall">
 {
+(:
 for-each($exp/*,
 function($x){<partial type="arg">{<epath>{$x,$context}</epath>,
 local:exp($x,$context,$static)/values}</partial>}),
-<epath>{$exp,$context}</epath>,$gflwor/values
+:)
+<epath>{$exp,$context}</epath>,
+$gflwor/values
 }</partial>
 
 union
@@ -770,10 +774,7 @@ declare function local:showCall($epath)
              let $args := string-join(for $exp in $step/* return 
              [local:showCall(<epath>{$exp,$context}</epath>)],",")
              return
-             data($step/@name) || "(" || $args || ")" 
-               
-             
-                
+             data($step/@name) || "(" || $args || ")"               
    else 
    if (name($step)="CmpG") then
    
@@ -857,7 +858,9 @@ declare function local:tcalls($trace,$static)
   if ($trace/epath) 
   then
   let $epath := $trace/epath 
-  let $values := if ($trace/../value/node()) then $trace/../value/node()
+  let $values := if ($trace/../value/node()) then 
+  fn:fold-right($trace/../value/node(),"",
+  function($x,$y) { if ($y) then ($x , "," , $y) else $x})
   else data($trace/../value/@*)
   return
   if (not(name(($epath/*)[1])="Union") and
@@ -882,9 +885,9 @@ declare function local:tcalls($trace,$static)
   return
       if (not($sc="()")) then
       <question>{
-      "Can be " || $sc || " equal to " || "(",  $values, ")" || "?" }
+      "Can be " || $sc || " equal to (" ,  $values , ")?" }
        {
-       for-each($epath/partial,
+       for-each($trace/values,
        function($x){local:tcalls($x,
        $static)})  
        }
@@ -892,15 +895,12 @@ declare function local:tcalls($trace,$static)
       else ()
   else 
     for-each($epath/*,
-    function($x){local:tcalls($x,
-    $static)})  
-  
-   
+    function($x){local:tcalls($x,$static)})  
   else 
   if ($trace/partial) then
      for-each($trace/partial,
      function($x){local:tcalls($x,$static)})
-   else 
+  else 
   if ($trace/values) then
     for-each($trace/values/partial,
      function($x){local:tcalls($x,$static)})
@@ -910,20 +910,20 @@ declare function local:tcalls($trace,$static)
  
 
 local:treecalls("
-declare function local:insert($x,$seq)
+declare function local:toc($book-or-section as element()) as element()*
 {
-  if (empty($seq)) then ($x)
-  else if ($x >= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
+    for $section in $book-or-section/section
+    return
+      <section>
+         { $section/@* , $section/title , local:toc($section) }                 
+      </section>
 };
 
-declare function local:insort($seq)
-{
-  if (empty($seq)) then ()
-  else
-  local:insert(head($seq),local:insort(tail($seq)))
-};
-
-local:insort((2,1)) 
+<toc>
+   {
+     for $s in db:open('book')/book return local:toc($s)
+   }
+</toc> 
   ") 
 
  
