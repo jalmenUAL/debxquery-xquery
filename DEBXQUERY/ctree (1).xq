@@ -750,7 +750,8 @@ declare function local:showCall($epath,$static)
    else  
    if (name($step)="CachedStep") then $step/@axis || "::" || $step/@test || "[" || 
                             string-join(for-each($step/*,
-                            function($x){local:showCall(<epath>{$x,$context}</epath>,$static)}),"/") || "]"             else           
+                            function($x){local:showCall(<epath>{$x,$context}</epath>,$static)}),"/") || "]"             
+                            else           
    if (name($step)="FnNot") then
    if ($step/values)  
   
@@ -767,47 +768,29 @@ declare function local:showCall($epath,$static)
           <context>{$context/*}</context><position>{0}</position></var>}</context>}</epath>,$static)                                   
    else
    
-   
-   if (substring(name($step),1,2)="Fn") then  
-             (:           
-             let $args := string-join(for $exp in $step/* return 
-             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
-             return 
-             substring-before(data($step/@name),"(") || "(" || $args || ")":)
-             let $args := 
-             fold-left(
-             for $exp in $step/* return 
-             
-             let $v :=
-             local:exp($exp,$context,$static)/values/value/node()
-             return if ($v) then $v  else "()",
-             (:fold-left(
-             local:exp($exp,$context,$static)/values/value/node(),
-             (),function($x,$y){if ($y) then if ($x) then ($x,",",$y) else $y else $x}),:)
-             
-             (),function($x,$y){if ($y) then if ($x) then ($x,",",$y) else $y else $x})
-             return 
-             <fun>{substring-before(data($step/@name),"(")||"(",$args,")"}</fun>/node() 
+   if (substring(name($step),1,2)="Fn") then             
+            let $args := for $exp in $step/* return 
+             let $e := local:exp($exp,$context,$static)/values/value/node()
+             return
+             if (count($e)>1) then 
+            
+            ["("|| fold-right($e,"",function($x,$y){if ($y) then $x || "," || $y else $x}) || ")"] 
+            else if (empty($e)) then "()" else $e
+            
+             return
+              (substring-before(data($step/@name),"(") || "(" , fold-right($args,"",function($x,$y){if ($y) then $x || "," || $y else $x}) , ")")
    else
    if (name($step)="StaticFuncCall")  then 
-             (:let $args := string-join(for $exp in $step/* return 
-             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
+             let $args := for $exp in $step/* return 
+             let $e := local:exp($exp,$context,$static)/values/value/node()
              return
-             data($step/@name) || "(" || $args || ")" :)
-             let $args := 
-             fold-left(
-             for $exp in $step/* return 
-             let $v :=
-             local:exp($exp,$context,$static)/values/value/node()
-             return if ($v) then $v  else "()",
-             (:fold-left(
-             local:exp($exp,$context,$static)/values/value/node(),
-             (),function($x,$y){if ($y) then if ($x) then ($x,",",$y) else $y else $x}),:)
-             
-             (),function($x,$y){if ($y) then if ($x) then ($x,",",$y) else $y else $x}) 
-             return 
-             <fun>{data($step/@name)||"(",$args,")"}</fun>/node() 
-                      
+             if (count($e)>1) then 
+            
+            ["("|| fold-right($e,"",function($x,$y){if ($y) then $x || "," || $y else $x}) || ")"] 
+            else if (empty($e)) then "()" else $e
+            
+             return
+             (data($step/@name) || "(",  fold-right($args,"",function($x,$y){if ($y) then $x || "," || $y else $x}),   ")")           
    else 
    if (name($step)="CmpG") then
    
@@ -924,7 +907,6 @@ declare function local:tcalls($trace,$static)
        function($x){local:tcalls($x,
        $static)})  
        }
-       
       </question>  
       else ()
   else 
@@ -944,19 +926,30 @@ declare function local:tcalls($trace,$static)
  
 
 local:treecalls("
-declare function local:insert($x,$seq)
+declare function local:main_authors($b)
 {
-  if (empty($seq)) then ($x)
-  else if ($x >= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
+  for $a in $b/author[position()<=2]  
+                return $a
 };
 
-declare function local:insort($seq)
-{
-  if (empty($seq)) then ()
-  else
-  local:insert(head($seq),local:insort(tail($seq)))
-};
 
-local:insert(0,(2,1))
+<bib>
+  {
+    for $b in db:open('bstore1')//book
+    where count($b/author) > 0
+    return
+        <book>
+            { $b/title }
+            {
+             local:main_authors($b)  
+            }
+            {
+                if (count($b/author) > 2)
+                 then <et-al/>
+                 else ()
+            }
+        </book>
+  }
+</bib>
   ") 
 
