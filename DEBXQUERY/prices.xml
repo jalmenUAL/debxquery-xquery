@@ -2,7 +2,7 @@
     <book>
         <title>Advanced Programming in the Unix environment</title>
         <source>bstore2.example.com</source>
-        <price>65.95</price>
+        <price>67.95</price>
     </book>
     <book>
         <title>Advanced Programming in the Unix environment</title>
@@ -12,7 +12,7 @@
     <book>
         <title>TCP/IP Illustrated</title>
         <source>bstore2.example.com</source>
-        <price>65.95</price>
+        <price>55.95</price>
     </book>
     <book>
         <title>TCP/IP Illustrated</title>
@@ -28,5 +28,15 @@
         <title>Data on the Web</title>
         <source>bstore1.example.com</source>
         <price>39.95</price>
+    </book>
+    <book>
+        <title>The Economics of Technology and Content for Digital TV</title>
+        <source>bstore2.example.com</source>
+        <price>64.95</price>
+    </book>
+    <book>
+        <title>The Economics of Technology and Content for Digital TV</title>
+        <source>bstore1.example.com</source>
+        <price>89.95</price>
     </book>
 </prices>

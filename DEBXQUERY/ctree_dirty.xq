@@ -152,7 +152,7 @@ declare function local:exp($exp,$context,$static)
    function($x){local:Path($x,$context,$static)}),"/")
    let $partial := 
    (if (name($exp)="Union" or
-        name($exp)="InterSect" or
+        name($exp)="Intersect" or
         name($exp)="CmpG" or
         name($exp)= "CmpN" or
         name($exp)= "Arith" or
@@ -290,10 +290,6 @@ let $name := data($exp/@name)
 let $args := $exp/*
 let $cargs := count($args)
 let $staticfun := $static[@name=$name]
-return
-if ($cargs=0) then local:exp($staticfun/*,$context,$static)
-else
-
 let $gflwor := 
 local:GFLWOR(
 <GFLWOR>{
@@ -313,6 +309,11 @@ return
 {
 <partial type="StaticFuncCall">
 {
+(:
+for-each($exp/*,
+function($x){<partial type="arg">{<epath>{$x,$context}</epath>,
+local:exp($x,$context,$static)/values}</partial>}),
+:)
 <epath>{$exp,$context}</epath>,
 $gflwor/values
 }</partial>
@@ -768,10 +769,15 @@ declare function local:showCall($epath,$static)
    
    
    if (substring(name($step),1,2)="Fn") then  
-             if ($step/../../values) then
+             (:           
+             let $args := string-join(for $exp in $step/* return 
+             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
+             return 
+             substring-before(data($step/@name),"(") || "(" || $args || ")":)
              let $args := 
              fold-left(
-             for $exp in $step/* return            
+             for $exp in $step/* return 
+             
              let $nodes := local:exp($exp,$context,$static)/values/value/node()
              return
              if (empty($nodes)) then "()"
@@ -779,17 +785,21 @@ declare function local:showCall($epath,$static)
              if (count($nodes)=1) then $nodes
              else 
              (<arg>{"(" , fold-left($nodes,
-             "",function($x,$y){if ($x="") then $y else ($x,",",$y)}) , ")"}</arg>)/node(), 
+             "",function($x,$y){if ($x="") then $y else ($x,",",$y)}) , ")"}</arg>)/node(),
+              
+             (:fold-left(
+             local:exp($exp,$context,$static)/values/value/node(),
+             (),function($x,$y){if ($y) then if ($x) then ($x,",",$y) else $y else $x}),:)
+             
              "",function($x,$y){ if ($x="") then $y else ($x,",",$y)} )
              return 
              <fun>{substring-before(data($step/@name),"(")||"(",$args,")"}</fun>/node() 
-             else  let $args := string-join(for $exp in $step/* return 
-             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
-             return 
-             substring-before(data($step/@name),"(") || "(" || $args || ")"
    else
    if (name($step)="StaticFuncCall")  then 
-             if ($step/../../values) then
+             (:let $args := string-join(for $exp in $step/* return 
+             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
+             return
+             data($step/@name) || "(" || $args || ")" :)
              let $args := 
              fold-left(
              for $exp in $step/* return 
@@ -800,18 +810,19 @@ declare function local:showCall($epath,$static)
              if (count($nodes)=1) then $nodes
              else 
              (<arg>{"(" , fold-left($nodes,
-             "",function($x,$y){if ($x="") then $y else ($x,",",$y)}) , ")"}</arg>)/node(),   
+             "",function($x,$y){if ($x="") then $y else ($x,",",$y)}) , ")"}</arg>)/node(),
+            
+             (:fold-left(
+             local:exp($exp,$context,$static)/values/value/node(),
+             (),function($x,$y){if ($y) then if ($x) then ($x,",",$y) else $y else $x}),:)
+             
              "",function($x,$y){ if ($x="") then $y else ($x,",",$y)} )
              return 
              <fun>{data($step/@name)||"(",$args,")"}</fun>/node() 
-             else 
-             let $args := string-join(for $exp in $step/* return 
-             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
-             return
-             data($step/@name) || "(" || $args || ")"
                       
    else 
-   if (name($step)="CmpG") then 
+   if (name($step)="CmpG") then
+   
               if ($step/values) then
               let $cond1 := local:showCall(($step/values/partial/*)[1],$static)
               let $cond2 := local:showCall(($step/values/partial/*)[2],$static)
@@ -898,7 +909,7 @@ declare function local:tcalls($trace,$static)
   else data($trace/../value/@*)
   return
   if (not(name(($epath/*)[1])="Union") and
-      not(name(($epath/*)[1])="InterSect") and
+      not(name(($epath/*)[1])="Intersect") and
       not(name(($epath/*)[1])="FnNot") and
       not(name(($epath/*)[1])="VarRef") and
       not(name(($epath/*)[1])="Quantifier") and
@@ -919,7 +930,7 @@ declare function local:tcalls($trace,$static)
   return
       if (not($sc="()")) then
       <question>{
-      ("Can be" , $sc , "equal to (" ,  $values , ")?") }
+      ("Can be " , $sc , " equal to (" ,  $values , ")?") }
        {
        for-each($trace/values,
        function($x){local:tcalls($x,
@@ -945,41 +956,19 @@ declare function local:tcalls($trace,$static)
  
 
 local:treecalls("
-declare function local:min($doc,$t)
+declare function local:insert($x,$seq)
 {
-   let $p := $doc//book[title = $t]/price
-   return min($p)
+  if (empty($seq)) then ($x)
+  else if ($x >= head($seq)) then ($x,$seq) else (head($seq),local:insert($x,tail($seq)))
 };
 
-declare function local:min_price($doc,$t)
+declare function local:insort($seq)
 {
-      <minprice title='{ $t }'>
-        <price>{ local:min($doc,$t) }</price>
-      </minprice>
-};
-declare function local:data($books,$t)
-{
- for $b in db:open('bstore1')//book[title=$t]
-        return
-        if ($b[editor]) then ($b/editor,$b/publisher)
-        else
-          ($b/author,$b/publisher)
+  if (empty($seq)) then ()
+  else
+  local:insert(head($seq),local:insort(tail($seq)))
 };
 
-<bib>
-{
-
-let $mylist := db:open('mylist')
-let $books := db:open('bstore1')
-let $prices := db:open('prices')
-for $t in distinct-values($prices//title)
-return
-<book>{
-local:data($books,$t),
-local:min_price($prices,$t)
-}
-</book>
-}
-</bib>  
-   ")
+local:insert(0,(2,1))
+  ") 
 
