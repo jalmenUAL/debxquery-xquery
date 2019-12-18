@@ -3,40 +3,48 @@
         <title>Advanced Programming in the Unix environment</title>
         <source>bstore2.example.com</source>
         <price>67.95</price>
+        <year>1995</year>
     </book>
     <book>
         <title>Advanced Programming in the Unix environment</title>
         <source>bstore1.example.com</source>
         <price>65.95</price>
+        <year>1997</year>
     </book>
     <book>
         <title>TCP/IP Illustrated</title>
         <source>bstore2.example.com</source>
         <price>55.95</price>
+        <year>2002</year>
     </book>
     <book>
         <title>TCP/IP Illustrated</title>
         <source>bstore1.example.com</source>
         <price>65.95</price>
+        <year>2007</year>
     </book>
     <book>
         <title>Data on the Web</title>
         <source>bstore2.example.com</source>
         <price>34.95</price>
+        <year>2003</year>
     </book>
     <book>
         <title>Data on the Web</title>
         <source>bstore1.example.com</source>
         <price>39.95</price>
+        <year>2002</year>
     </book>
     <book>
         <title>The Economics of Technology and Content for Digital TV</title>
         <source>bstore2.example.com</source>
         <price>64.95</price>
+        <year>1995</year>
     </book>
     <book>
         <title>The Economics of Technology and Content for Digital TV</title>
         <source>bstore1.example.com</source>
         <price>89.95</price>
+        <year>1998</year>
     </book>
 </prices>

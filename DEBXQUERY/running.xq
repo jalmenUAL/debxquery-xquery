@@ -1,34 +1,56 @@
-declare function local:min($doc,$t)
+declare function local:min($t)
 {
-   let $p := $doc//book[title = $t]/price
+   let $prices := db:open('prices')
+   let $p := $prices//book[title = $t]/year
    return min($p)
 };
 
-declare function local:min_price($doc,$t)
+declare function local:store($t,$p)
 {
-      <minprice title='{ $t }'>
-        <price>{ local:min($doc,$t) }</price>
+   let $prices := db:open('prices')
+   let $p := $prices//book[title = $t and price=$p]
+   return $p/source
+};
+
+
+declare function local:min_price($t)
+{
+      let $min := local:min($t)
+      return
+      <minprice title='{$t}'>
+         {local:store($t,$min)}
+         <price>{local:min($t)}</price>
       </minprice>
 };
-declare function local:data($books,$t)
+
+declare function local:rate($rates)
 {
- for $b in db:open('bstore1')//book[title=$t]
+ let $n := count($rates)
+ return sum($n) div $n 
+};
+
+declare function local:data($t)
+{
+ for $b in db:open('bstore')//book[title=$t]
+ let $mr := local:rate($b/rate)
+ where  $mr > 5
         return
-        if ($b[editor]) then ($b/editor,$b/publisher)
+        if ($b[editor]) then ($b/editor,$b/publisher,<mrate>{$mr}</mrate>)
         else
-          ($b/author,$b/publisher)
+          ($b/author[position()<=1],$b/publisher,<mrate>{$mr}</mrate>)
 };
 
 <bib>
 {
-let $prices := db:open('prices')
+
 let $mylist := db:open('mylist')
-let $books := db:open('bstore1')
-for $t in distinct-values($prices//title)
+for $t in distinct-values($mylist//title)
+let $d := local:data($t)
+where exists($d)
 return
 <book>{
-local:data($books,$t),
-local:min_price($prices,$t)
+$d,
+local:min_price($t)
 }
 </book>
 }
