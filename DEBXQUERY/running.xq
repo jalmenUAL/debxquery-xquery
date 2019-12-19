@@ -26,14 +26,14 @@ declare function local:min_price($t)
 declare function local:rate($rates)
 {
  let $n := count($rates)
- return sum($n) div $n 
+ return sum($rates) div $n
 };
 
 declare function local:data($t)
 {
  for $b in db:open('bstore')//book[title=$t]
  let $mr := local:rate($b/rate)
- where  $mr > 5
+ where  $mr < 0
         return
         if ($b[editor]) then ($b/editor,$b/publisher,<mrate>{$mr}</mrate>)
         else
@@ -54,4 +54,4 @@ local:min_price($t)
 }
 </book>
 }
-</bib>  
+</bib>     

@@ -626,17 +626,7 @@ declare function local:showPath($step,$context,$static)
    else "()"
 }; 
 
-declare function local:print_context($context,$static)
-{
-  <a>{
-  let $count := count($context/var/name)
-  for $i in 1 to $count
-  return
-  data(($context/var/name/Var/@name)[$i]) || 
-  "=" || 
-  local:showPath(($context/var/path/*)[$i],$context,$static)
-  }</a>
-};
+ 
 
 declare function local:epaths($string_query)
 {
@@ -649,7 +639,6 @@ declare function local:epaths($string_query)
   let $path := ($empty/epath/*)[1]
   let $context := ($empty/epath/*)[2]
   let $sp := local:showPath($path,$context,$static)
-  let $c := local:print_context($context,$static)
   return 
   if ($sp and not($sp="()")) then  "Empty path found in '" ||  $sp || "'" 
   else ()
@@ -772,15 +761,15 @@ declare function local:showCall($epath,$static)
              let $args := 
              fold-left(
              for $exp in $step/* return            
-             let $nodes := local:exp($exp,$context,$static)/values/value/node()
+             let $nodes := local:exp($exp,$context,$static)/values/value/node() 
              return
              if (empty($nodes)) then "()"
              else
              if (count($nodes)=1) then $nodes
              else 
-             (<arg>{"(" , fold-left($nodes,
-             "",function($x,$y){if ($x="") then $y else ($x,",",$y)}) , ")"}</arg>)/node(), 
-             "",function($x,$y){ if ($x="") then $y else ($x,",",$y)} )
+             fold-left($nodes,
+             "",function($x,$y){if (exists($x)) then ($x,",",$y) else $y}) ,
+             "",function($x,$y){ if (exists($x)) then ($x,",",$y) else $y} )
              return 
              <fun>{substring-before(data($step/@name),"(")||"(",$args,")"}</fun>/node() 
              else  let $args := string-join(for $exp in $step/* return 
@@ -793,15 +782,15 @@ declare function local:showCall($epath,$static)
              let $args := 
              fold-left(
              for $exp in $step/* return 
-             let $nodes := local:exp($exp,$context,$static)/values/value/node()
+             let $nodes := local:exp($exp,$context,$static)/values/value/node() 
              return
              if (empty($nodes)) then "()"
              else
              if (count($nodes)=1) then $nodes
              else 
-             (<arg>{"(" , fold-left($nodes,
-             "",function($x,$y){if ($x="") then $y else ($x,",",$y)}) , ")"}</arg>)/node(),   
-             "",function($x,$y){ if ($x="") then $y else ($x,",",$y)} )
+             fold-left($nodes,
+             "",function($x,$y){if (exists($x)) then ($x,",",$y) else $y }),   
+             "",function($x,$y){ if (exists($x)) then ($x,",",$y) else $y} )
              return 
              <fun>{data($step/@name)||"(",$args,")"}</fun>/node() 
              else 
@@ -894,7 +883,7 @@ declare function local:tcalls($trace,$static)
   let $epath := $trace/epath 
   let $values := if ($trace/../value/node()) then 
   fn:fold-right($trace/../value/node(),"",
-  function($x,$y) { if ($y) then ($x , "," , $y) else $x})
+  function($x,$y) { if ($y="") then $x else ($x, "," ,$y)})
   else data($trace/../value/@*)
   return
   if (not(name(($epath/*)[1])="Union") and
@@ -914,12 +903,12 @@ declare function local:tcalls($trace,$static)
   
   then 
   let $context := $epath/context 
-  let $c := local:print_context($context,$static)
+  
   let $sc := local:showCall($epath,$static)
   return
       if (not($sc="()")) then
       <question>{
-      ("Can be " , $sc , "equal to (" ,  $values , ")?") }
+      ("Can be " , $sc , "equal to (" , $values , ")?") }
        {
        for-each($trace/values,
        function($x){local:tcalls($x,
@@ -942,9 +931,78 @@ declare function local:tcalls($trace,$static)
   else ()
 };
 
- 
+declare function local:streecalls($string_query)
+{
+  let $query := xquery:parse($string_query)
+  let $trace := 
+  local:exps($query/QueryPlan/*[not(name(.)="StaticFunc")],
+  <context></context>,
+  $query/QueryPlan/*[name(.)="StaticFunc"])
+  let $static := $query/QueryPlan/*[name(.)="StaticFunc"]
+  return local:stcalls(<partial>{$trace/values}</partial>,
+  $static)
+};
 
-local:treecalls("
+declare function local:stcalls($trace,$static)
+{
+  if ($trace/epath) 
+  then
+  let $epath := $trace/epath 
+  let $values := if ($trace/../value/node()) then 
+  fn:fold-right($trace/../value/node(),"",
+  function($x,$y) { if ($x="") then ($x, "," ,$y) else $x})
+  else data($trace/../value/@*)
+  return
+  if (not(name(($epath/*)[1])="Union") and
+      not(name(($epath/*)[1])="InterSect") and
+      not(name(($epath/*)[1])="FnNot") and
+      not(name(($epath/*)[1])="VarRef") and
+      not(name(($epath/*)[1])="Quantifier") and
+      not(substring(name(($epath/*)[1]),1,2)="Fn") and
+      not(name(($epath/*)[1])="CmpG") and
+      not(name(($epath/*)[1])="Arith") and
+      not(name(($epath/*)[1])="CmpN") and
+      not(name(($epath/*)[1])="And") and
+      not(name(($epath/*)[1])="Or") and
+      not(name(($epath/*)[1])="Empty") and
+      not(name(($epath/*)[1])="List") 
+      and not (($epath/*)[1]/@type))
+  
+  then 
+  let $context := $epath/context 
+  
+  let $sc := local:showCall($epath,$static)
+  return
+      if (not($sc="()")) then
+      <question>{
+      ("Can be " , $sc , "equal to (" , $values , ")?") }
+       {
+       for-each(sort($trace/values,(),function($x){count($x/../value/node())}),
+       function($x){local:stcalls($x,
+       $static)})  
+       }
+       
+      </question>  
+      else ()
+  else 
+    
+    for-each(sort($epath/*,(),function($x){count($x/../value/node())}),
+    function($x){local:stcalls($x,$static)})  
+  else 
+  if ($trace/partial) then
+     
+     for-each(sort($trace/partial,(),function($x){count($x/../value/node())}),
+     function($x){local:stcalls($x,$static)})
+  else 
+  if ($trace/values) then
+     
+    for-each(sort($trace/values,(),function($x){count($x/../value/node())}),
+     function($x){local:stcalls($x,$static)})
+  else ()
+};
+
+ 
+local:streecalls("
 declare function local:min($t)
 {
    let $prices := db:open('prices')
@@ -973,14 +1031,14 @@ declare function local:min_price($t)
 declare function local:rate($rates)
 {
  let $n := count($rates)
- return sum($n) div $n
+ return sum($rates) div $n
 };
 
 declare function local:data($t)
 {
  for $b in db:open('bstore')//book[title=$t]
  let $mr := local:rate($b/rate)
- where  $mr > 5
+ where  $mr < 0
         return
         if ($b[editor]) then ($b/editor,$b/publisher,<mrate>{$mr}</mrate>)
         else
@@ -1001,6 +1059,6 @@ local:min_price($t)
 }
 </book>
 }
-</bib>     
+</bib>         
    ")
 
