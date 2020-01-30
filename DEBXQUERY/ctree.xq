@@ -966,8 +966,8 @@ declare function local:showCall($epath,$static)
              let $varn := $step/Var/@name
              let $con := ($context/*[name/Var/@name=data($varn)])[last()]
              let $path := 
-             $con/path         
-             return string-join($path//(@*|text()),"/")
+             $con/path     
+             return serialize($path/node())
    else
    if (name($step)="CachedPath") 
           then string-join(for-each($step/*,
@@ -1198,8 +1198,21 @@ declare function local:tcalls($function,$trace,$static)
        
        return
       <question nc ="{count($chs)+sum($chs/@nc)}">
-      {if (name(($epath/*)[1])="StaticFuncCall") then <sf>{$sc}</sf> else 
-      <p>{$sc}</p>}
+      {if (name(($epath/*)[1])="StaticFuncCall") then <sf>{$sc}</sf>
+       else  
+       if ($context/*[name/Var/@name=data(($epath/*/*)[1]/Var/@name)])
+       then
+       (<p>{
+       local:showCall(<epath>{tail($epath/*/*),$context}</epath>,
+       $static)
+        }</p>,
+       <on>{
+       ($context/*[name/Var/@name=data(($epath/*/*)[1]/Var/@name)])
+       [last()]/path/node()
+       }</on>
+       ) else <p>{$sc}</p>}
+        
+        
       <values>{$values}</values>
        {
        $chs
@@ -1277,7 +1290,7 @@ declare function local:title($last,$first)
             }
         </result>
   }
-</results>                            
+</results>                                   
  "    
   )
  
