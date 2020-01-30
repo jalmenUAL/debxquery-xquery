@@ -41,13 +41,14 @@ declare function local:NoCommonName(){
 
 declare function local:Guest(){
   for $o in  db:open('owner')/owners/owner
-  where $o/id  = (for $n in local:NoCommonName()
+  let $c :=  (for $n in local:NoCommonName()
                  for $l in local:LessThan6()
                  where $l/id=$n/id  
                  return $n/id )
+  where $o/id  = $c
   return <guest>{$o/id, $o/name}</guest>
 };
 
 
 
-local:Guest()
+local:AnimalOwner()

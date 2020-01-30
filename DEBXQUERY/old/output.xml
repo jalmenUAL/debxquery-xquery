@@ -1,0 +1,659 @@
+<CElem>
+  <values>
+    <partial type="CElem">
+      <values>
+        <partial type="Bound">
+          <values>
+            <partial type="Path">
+              <epath>
+                <IterPath>
+                  <DbOpen name="open(database[,path])">
+                    <Str value="bstore1" type="xs:string"/>
+                  </DbOpen>
+                  <IterStep axis="child" test="bib"/>
+                  <IterStep axis="child" test="book"/>
+                </IterPath>
+                <context/>
+              </epath>
+            </partial>
+            <value>
+              <book year="1994">
+                <title>TCP/IP Illustrated</title>
+                <author>
+                  <last>Stevens</last>
+                  <first>W.</first>
+                </author>
+                <publisher>Addison-Wesley</publisher>
+                <price>65.95</price>
+              </book>
+            </value>
+            <value>
+              <book year="1992">
+                <title>Advanced Programming in the Unix environment</title>
+                <author>
+                  <last>Stevens</last>
+                  <first>W.</first>
+                </author>
+                <publisher>Addison-Wesley</publisher>
+                <price>65.95</price>
+              </book>
+            </value>
+            <value>
+              <book year="2000">
+                <title>Data on the Web</title>
+                <author>
+                  <last>Abiteboul</last>
+                  <first>Serge</first>
+                </author>
+                <author>
+                  <last>Buneman</last>
+                  <first>Peter</first>
+                </author>
+                <author>
+                  <last>Suciu</last>
+                  <first>Dan</first>
+                </author>
+                <publisher>Morgan Kaufmann Publishers</publisher>
+                <price>39.95</price>
+              </book>
+            </value>
+            <value>
+              <book year="1999">
+                <title>The Economics of Technology and Content for Digital TV</title>
+                <editor>
+                  <last>Gerbarg</last>
+                  <first>Darcy</first>
+                  <affiliation>CITI</affiliation>
+                </editor>
+                <publisher>Kluwer Academic Publishers</publisher>
+                <price>129.95</price>
+              </book>
+            </value>
+          </values>
+        </partial>
+        <value>
+          <book year="1994">
+            <title>TCP/IP Illustrated</title>
+          </book>
+        </value>
+        <partial type="For">
+          <partial type="where">
+            <values>
+              <partial type="Path">
+                <epath>
+                  <And>
+                    <values>
+                      <partial type="Path">
+                        <epath>
+                          <CmpG op="=">
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <CachedPath>
+                                    <VarRef>
+                                      <Var name="$b" id="0"/>
+                                    </VarRef>
+                                    <IterStep axis="child" test="publisher"/>
+                                  </CachedPath>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1994">
+                                          <title>TCP/IP Illustrated</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value>
+                                <publisher>Addison-Wesley</publisher>
+                              </value>
+                            </values>
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <Str value="Addison-Wesley" type="xs:string"/>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1994">
+                                          <title>TCP/IP Illustrated</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value>Addison-Wesley</value>
+                            </values>
+                          </CmpG>
+                          <context>
+                            <var>
+                              <name>
+                                <Var name="$b" id="0"/>
+                              </name>
+                              <path>
+                                <book year="1994">
+                                  <title>TCP/IP Illustrated</title>
+                                  <author>
+                                    <last>Stevens</last>
+                                    <first>W.</first>
+                                  </author>
+                                  <publisher>Addison-Wesley</publisher>
+                                  <price>65.95</price>
+                                </book>
+                              </path>
+                            </var>
+                          </context>
+                        </epath>
+                      </partial>
+                      <value>true</value>
+                    </values>
+                    <values>
+                      <partial type="Path">
+                        <epath>
+                          <CmpG op="&gt;">
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <CachedPath>
+                                    <VarRef>
+                                      <Var name="$b" id="0"/>
+                                    </VarRef>
+                                    <IterStep axis="attribute" test="year"/>
+                                  </CachedPath>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1994">
+                                          <title>TCP/IP Illustrated</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value year="1994"/>
+                            </values>
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <Int value="1991" type="xs:integer"/>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1994">
+                                          <title>TCP/IP Illustrated</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value>1991</value>
+                            </values>
+                          </CmpG>
+                          <context>
+                            <var>
+                              <name>
+                                <Var name="$b" id="0"/>
+                              </name>
+                              <path>
+                                <book year="1994">
+                                  <title>TCP/IP Illustrated</title>
+                                  <author>
+                                    <last>Stevens</last>
+                                    <first>W.</first>
+                                  </author>
+                                  <publisher>Addison-Wesley</publisher>
+                                  <price>65.95</price>
+                                </book>
+                              </path>
+                            </var>
+                          </context>
+                        </epath>
+                      </partial>
+                      <value>true</value>
+                    </values>
+                  </And>
+                  <context>
+                    <var>
+                      <name>
+                        <Var name="$b" id="0"/>
+                      </name>
+                      <path>
+                        <book year="1994">
+                          <title>TCP/IP Illustrated</title>
+                          <author>
+                            <last>Stevens</last>
+                            <first>W.</first>
+                          </author>
+                          <publisher>Addison-Wesley</publisher>
+                          <price>65.95</price>
+                        </book>
+                      </path>
+                    </var>
+                  </context>
+                </epath>
+              </partial>
+              <value>true</value>
+            </values>
+          </partial>
+          <partial type="return">
+            <values>
+              <partial type="CElem">
+                <values>
+                  <partial type="CAttr">
+                    <values>
+                      <partial type="Path">
+                        <epath>
+                          <CachedPath>
+                            <VarRef>
+                              <Var name="$b" id="0"/>
+                            </VarRef>
+                            <IterStep axis="attribute" test="year"/>
+                          </CachedPath>
+                          <context>
+                            <var>
+                              <name>
+                                <Var name="$b" id="0"/>
+                              </name>
+                              <path>
+                                <book year="1994">
+                                  <title>TCP/IP Illustrated</title>
+                                  <author>
+                                    <last>Stevens</last>
+                                    <first>W.</first>
+                                  </author>
+                                  <publisher>Addison-Wesley</publisher>
+                                  <price>65.95</price>
+                                </book>
+                              </path>
+                            </var>
+                          </context>
+                        </epath>
+                      </partial>
+                      <value year="1994"/>
+                    </values>
+                  </partial>
+                  <value year="1994"/>
+                </values>
+                <values>
+                  <partial type="Path">
+                    <epath>
+                      <CachedPath>
+                        <VarRef>
+                          <Var name="$b" id="0"/>
+                        </VarRef>
+                        <IterStep axis="child" test="title"/>
+                      </CachedPath>
+                      <context>
+                        <var>
+                          <name>
+                            <Var name="$b" id="0"/>
+                          </name>
+                          <path>
+                            <book year="1994">
+                              <title>TCP/IP Illustrated</title>
+                              <author>
+                                <last>Stevens</last>
+                                <first>W.</first>
+                              </author>
+                              <publisher>Addison-Wesley</publisher>
+                              <price>65.95</price>
+                            </book>
+                          </path>
+                        </var>
+                      </context>
+                    </epath>
+                  </partial>
+                  <value>
+                    <title>TCP/IP Illustrated</title>
+                  </value>
+                </values>
+              </partial>
+              <value>
+                <book year="1994">
+                  <title>TCP/IP Illustrated</title>
+                </book>
+              </value>
+            </values>
+          </partial>
+        </partial>
+        <value>
+          <book year="1992">
+            <title>Advanced Programming in the Unix environment</title>
+          </book>
+        </value>
+        <partial type="For">
+          <partial type="where">
+            <values>
+              <partial type="Path">
+                <epath>
+                  <And>
+                    <values>
+                      <partial type="Path">
+                        <epath>
+                          <CmpG op="=">
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <CachedPath>
+                                    <VarRef>
+                                      <Var name="$b" id="0"/>
+                                    </VarRef>
+                                    <IterStep axis="child" test="publisher"/>
+                                  </CachedPath>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1992">
+                                          <title>Advanced Programming in the Unix environment</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value>
+                                <publisher>Addison-Wesley</publisher>
+                              </value>
+                            </values>
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <Str value="Addison-Wesley" type="xs:string"/>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1992">
+                                          <title>Advanced Programming in the Unix environment</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value>Addison-Wesley</value>
+                            </values>
+                          </CmpG>
+                          <context>
+                            <var>
+                              <name>
+                                <Var name="$b" id="0"/>
+                              </name>
+                              <path>
+                                <book year="1992">
+                                  <title>Advanced Programming in the Unix environment</title>
+                                  <author>
+                                    <last>Stevens</last>
+                                    <first>W.</first>
+                                  </author>
+                                  <publisher>Addison-Wesley</publisher>
+                                  <price>65.95</price>
+                                </book>
+                              </path>
+                            </var>
+                          </context>
+                        </epath>
+                      </partial>
+                      <value>true</value>
+                    </values>
+                    <values>
+                      <partial type="Path">
+                        <epath>
+                          <CmpG op="&gt;">
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <CachedPath>
+                                    <VarRef>
+                                      <Var name="$b" id="0"/>
+                                    </VarRef>
+                                    <IterStep axis="attribute" test="year"/>
+                                  </CachedPath>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1992">
+                                          <title>Advanced Programming in the Unix environment</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value year="1992"/>
+                            </values>
+                            <values>
+                              <partial type="Path">
+                                <epath>
+                                  <Int value="1991" type="xs:integer"/>
+                                  <context>
+                                    <var>
+                                      <name>
+                                        <Var name="$b" id="0"/>
+                                      </name>
+                                      <path>
+                                        <book year="1992">
+                                          <title>Advanced Programming in the Unix environment</title>
+                                          <author>
+                                            <last>Stevens</last>
+                                            <first>W.</first>
+                                          </author>
+                                          <publisher>Addison-Wesley</publisher>
+                                          <price>65.95</price>
+                                        </book>
+                                      </path>
+                                    </var>
+                                  </context>
+                                </epath>
+                              </partial>
+                              <value>1991</value>
+                            </values>
+                          </CmpG>
+                          <context>
+                            <var>
+                              <name>
+                                <Var name="$b" id="0"/>
+                              </name>
+                              <path>
+                                <book year="1992">
+                                  <title>Advanced Programming in the Unix environment</title>
+                                  <author>
+                                    <last>Stevens</last>
+                                    <first>W.</first>
+                                  </author>
+                                  <publisher>Addison-Wesley</publisher>
+                                  <price>65.95</price>
+                                </book>
+                              </path>
+                            </var>
+                          </context>
+                        </epath>
+                      </partial>
+                      <value>true</value>
+                    </values>
+                  </And>
+                  <context>
+                    <var>
+                      <name>
+                        <Var name="$b" id="0"/>
+                      </name>
+                      <path>
+                        <book year="1992">
+                          <title>Advanced Programming in the Unix environment</title>
+                          <author>
+                            <last>Stevens</last>
+                            <first>W.</first>
+                          </author>
+                          <publisher>Addison-Wesley</publisher>
+                          <price>65.95</price>
+                        </book>
+                      </path>
+                    </var>
+                  </context>
+                </epath>
+              </partial>
+              <value>true</value>
+            </values>
+          </partial>
+          <partial type="return">
+            <values>
+              <partial type="CElem">
+                <values>
+                  <partial type="CAttr">
+                    <values>
+                      <partial type="Path">
+                        <epath>
+                          <CachedPath>
+                            <VarRef>
+                              <Var name="$b" id="0"/>
+                            </VarRef>
+                            <IterStep axis="attribute" test="year"/>
+                          </CachedPath>
+                          <context>
+                            <var>
+                              <name>
+                                <Var name="$b" id="0"/>
+                              </name>
+                              <path>
+                                <book year="1992">
+                                  <title>Advanced Programming in the Unix environment</title>
+                                  <author>
+                                    <last>Stevens</last>
+                                    <first>W.</first>
+                                  </author>
+                                  <publisher>Addison-Wesley</publisher>
+                                  <price>65.95</price>
+                                </book>
+                              </path>
+                            </var>
+                          </context>
+                        </epath>
+                      </partial>
+                      <value year="1992"/>
+                    </values>
+                  </partial>
+                  <value year="1992"/>
+                </values>
+                <values>
+                  <partial type="Path">
+                    <epath>
+                      <CachedPath>
+                        <VarRef>
+                          <Var name="$b" id="0"/>
+                        </VarRef>
+                        <IterStep axis="child" test="title"/>
+                      </CachedPath>
+                      <context>
+                        <var>
+                          <name>
+                            <Var name="$b" id="0"/>
+                          </name>
+                          <path>
+                            <book year="1992">
+                              <title>Advanced Programming in the Unix environment</title>
+                              <author>
+                                <last>Stevens</last>
+                                <first>W.</first>
+                              </author>
+                              <publisher>Addison-Wesley</publisher>
+                              <price>65.95</price>
+                            </book>
+                          </path>
+                        </var>
+                      </context>
+                    </epath>
+                  </partial>
+                  <value>
+                    <title>Advanced Programming in the Unix environment</title>
+                  </value>
+                </values>
+              </partial>
+              <value>
+                <book year="1992">
+                  <title>Advanced Programming in the Unix environment</title>
+                </book>
+              </value>
+            </values>
+          </partial>
+        </partial>
+      </values>
+    </partial>
+    <value>
+      <bib>
+        <book year="1994">
+          <title>TCP/IP Illustrated</title>
+        </book>
+        <book year="1992">
+          <title>Advanced Programming in the Unix environment</title>
+        </book>
+      </bib>
+    </value>
+  </values>
+</CElem>

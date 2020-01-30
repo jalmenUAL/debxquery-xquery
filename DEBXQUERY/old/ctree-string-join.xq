@@ -29,7 +29,7 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") ascending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) ascending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -78,7 +78,7 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") descending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) descending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -119,7 +119,7 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") ascending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) ascending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -158,7 +158,7 @@ declare function local:For($for,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",")  descending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) descending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -297,7 +297,7 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") ascending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) ascending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -348,7 +348,7 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") descending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) descending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -391,7 +391,7 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") ascending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) ascending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -433,7 +433,7 @@ declare function local:Let($let,$groupby,$orderby,$where,$return,$context,$stati
   <path>{$value}</path>
   </var>
   }</context>
-  order by string-join(for $x in $orderby/Key/* return xquery:eval(local:Path($x,$context,$static)),",") descending 
+  order by xquery:eval(local:Path($orderby/Key/*,$context,$static)) descending 
   let $where := local:Where($where,
   $context,$static)
   return 
@@ -967,7 +967,7 @@ declare function local:showCall($epath,$static)
              let $con := ($context/*[name/Var/@name=data($varn)])[last()]
              let $path := 
              $con/path         
-             return string-join($path//(@*|text()),"/")
+             return $path           
    else
    if (name($step)="CachedPath") 
           then string-join(for-each($step/*,
@@ -1195,7 +1195,6 @@ declare function local:tcalls($function,$trace,$static)
       let $chs :=  $function(for-each($trace/values,
        function($x){local:tcalls($function,$x,
        $static)})) 
-       
        return
       <question nc ="{count($chs)+sum($chs/@nc)}">
       {if (name(($epath/*)[1])="StaticFuncCall") then <sf>{$sc}</sf> else 
@@ -1252,32 +1251,16 @@ declare function local:first_small_path_strategy($query)
  
 
 local:naive_strategy("
-declare function local:title($last,$first)
-{
-   for $b in db:open('bstore1')/bib/book
-                where some $ba in $b/author 
-                      satisfies ($ba/last = $last and $ba/first=$first)
-                return $b/title
-};
-
-<results>
-  {
-    let $a := db:open('bstore1')//author
-    for $last in distinct-values($a/last),
-        $first in distinct-values($a[last=$last]/first)
-    order by $last, $first
-    return
-        <result>
-            <author>
-               <last>{ $last }</last>
-               <first>{ $first }</first>
-            </author>
-            {
-               local:title($last,$first)
-            }
-        </result>
-  }
-</results>                            
+<bib>
+ {
+  for $b in db:open('bstore1')/bib/book
+  where $b/publisher = 'Addison-Wesley' and $b/@year > 1991
+  return
+    <book year='{ $b/@year }'>
+     { $b/title }
+    </book>
+ }
+</bib>                 
  "    
   )
  
