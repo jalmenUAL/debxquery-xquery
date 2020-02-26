@@ -774,13 +774,13 @@ declare function local:Path($step,$context,$static)
    if (name($step)="Root") then "root()" 
    else
    if (name($step)="DbOpen") then 
-            "db:open('" || data($step/Str/@value) || "')"
+            "<root>{db:open('" || data($step/Str/@value) || "')}</root>"
    else
    if (name($step)="FnDoc") then 
-            "doc('" || data($step/Str/@value) || "')"
+            "<root>{doc('" || data($step/Str/@value) || "')}</root>"
    else
    if (name($step)="FnCollection") then 
-            "collection('" || data($step/Str/@value) || "')"
+            "<root>{collection('" || data($step/Str/@value) || "')}</root>"
    else
    if (name($step)="VarRef") then 
              let $varn := $step/Var/@name
@@ -788,8 +788,9 @@ declare function local:Path($step,$context,$static)
              let $path := 
              $con/path/node()
              return
-             serialize(<root>{$path}</root>, 
-             map {'method': 'xml' }) || "/node()"  
+                
+              serialize(<root>{$path}</root>, 
+             map {'method': 'xml' }) || "/node()" 
                        
    else
    if (name($step)="CachedPath") 
@@ -941,213 +942,6 @@ declare function local:exec($string_query)
 };
 
 
- 
-(:
-declare function local:showCall($epath,$static)
-{  
-   let $step := ($epath/*)[1]
-   let $context := ($epath/*)[2]
-   return
-   if (name($step)="ContextValue") then "."
-   else
-   if (name($step)="Root") then "root()" 
-   else
-   if (name($step)="DbOpen") then 
-            "db:open('" || data($step/Str/@value) || "')"
-   else
-   if (name($step)="FnDoc") then 
-            "doc('" || data($step/Str/@value) || "')"
-   else
-   if (name($step)="FnCollection") then 
-            "collection('" || data($step/Str/@value) || "')"
-   else
-   
-   if (name($step)="VarRef") then 
-             let $varn := $step/Var/@name
-             let $con := ($context/*[name/Var/@name=data($varn)])[last()]
-             let $path := 
-             $con/path     
-             return serialize($path/node())
-   else
-   if (name($step)="CachedPath") 
-          then string-join(for-each($step/*,
-          function($x){local:showCall(<epath>{$x,$context}</epath>,$static)}),"/")               
-   else
-   if (name($step)="IterPath") 
-          then string-join(for-each($step/*,
-          function($x){local:showCall(<epath>{$x,$context}</epath>,$static)}),"/")      
-   else   
-   if (name($step)="Union") then
-   if ($step/values) then
-      "(" || 
-                   string-join(for-each($step/values/partial/*,
-                   function($x){local:showCall($x,$static)}),"|") || ")"  
-   else
-       "(" || 
-                   string-join(for-each($step/*,
-                   function($x){<epath>{$x,$context}</epath>}),"|") || ")"
-   else
-   if (name($step)="InterSect") then 
-   if ($step/values) then
-   
-     "(" || 
-                   string-join(for-each($step/values/partial/*,
-                   function($x){local:showCall($x,$static)}),"intersect") || ")"  
-                   
-   else 
-    "(" || 
-                   string-join(for-each($step/*,
-                   function($x){<epath>{$x,$context}</epath>}),"intersect") || ")" 
-   else
-   if (name($step)="MixedPath")
-                   then
-                   local:showCall(<epath><CachedPath>{$step/*}</CachedPath>{$context}</epath>,$static)                  
-   else           
-   if (name($step)="CachedFilter") 
-          then 
-          "(" || local:showCall(<epath>{head($step/*),$context}</epath>,$static) || ")" ||
-          string-join(for-each(tail($step/*),
-          function($x){"[" || local:showCall(<epath>{$x,$context}</epath>,$static) || "]"}),"") 
-   else
-   if (name($step)="IterStep") then 
-                "(" || $step/@axis || "::" || $step/@test || ")" ||
-                string-join(for-each($step/*,
-                function($x){"[" || local:showCall(<epath>{$x,$context}</epath>,$static) || "]"}),"")
-   else 
-   if (name($step)="IterPosStep") then 
-                $step/@axis || "::" || $step/@test || "[" || data($step/Int/@value) || "]"                
-   else  
-   if (name($step)="CachedStep") then $step/@axis || "::" || $step/@test || "[" || 
-                            string-join(for-each($step/*,
-                            function($x){local:showCall(<epath>{$x,$context}</epath>,$static)}),"/") || "]"             else           
-   if (name($step)="FnNot") then
-   if ($step/values)  
-  
-          then "not(" || local:showCall($step/values/partial/*,$static) || ")" 
-   else  "not(" || local:showCall(<epath>{$step/*,$context}</epath>,$static) || ")" 
-   else
-   if (name($step)="Quantifier") 
-          then $step/@type || " " || $step/GFLWOR/For/Var/@name || " in " || 
-          local:showCall(<epath>{$step/GFLWOR/For/*[2],$context}</epath>,$static)
-          || " satisfies " || local:showCall(<epath>{($step/GFLWOR)/*[2],
-          <context>{
-           $context/*
-          union <var><name>{$step/GFLWOR/For/Var}</name><path
-          >{local:exp($step/GFLWOR/For/*[2],$context,$static)/values/value/node()}</path>
-          </var>}</context>}</epath>,$static)                                   
-   else
-   
-   
-   if (substring(name($step),1,2)="Fn") then  
-             if ($step/../../values) then
-             let $args := 
-             fold-left(
-             for $exp in $step/* return            
-             let $nodes := local:exp($exp,$context,$static)/values/value/node() 
-             return
-             if (empty($nodes)) then ["()"]
-             else
-             if (count($nodes)=1) then [$nodes]
-             else 
-             [fold-left($nodes,
-             (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)})],
-             (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)} )
-             return 
-             <fun>{substring-before(data($step/@name),"(")||"(",$args,")"}</fun>/node()
-             else  
-             let $args := string-join(for $exp in $step/* return 
-             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
-             return 
-             substring-before(data($step/@name),"(") || "(" || $args || ")"
-   else
-   if (name($step)="StaticFuncCall")  then 
-             if ($step/../../values) then
-             let $args := 
-             fold-left(
-             for $exp in $step/* return 
-             let $nodes := local:exp($exp,$context,$static)/values/value/node()
-             return
-             if (empty($nodes)) then ["()"]
-             else
-             if (count($nodes)=1) then [$nodes]
-             else 
-             ["(",fold-left($nodes,
-             (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)}),")"],   
-             (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)})
-             return 
-             <fun>{data($step/@name)||"(",$args,")"}</fun>/node()
-             else 
-             let $args := string-join(for $exp in $step/* return 
-             [local:showCall(<epath>{$exp,$context}</epath>,$static)],",")
-             return
-             data($step/@name) || "(" || $args || ")"
-                      
-   else 
-   if (name($step)="CmpG") then 
-              if ($step/values) then
-              let $cond1 := local:showCall(($step/values/partial/*)[1],$static)
-              let $cond2 := local:showCall(($step/values/partial/*)[2],$static)
-              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")" 
-              else
-              let $cond1 := local:showCall(<epath>{($step/*)[1],$context}</epath>,$static)
-              let $cond2 := local:showCall(<epath>{($step/*)[2],$context}</epath>,$static)
-              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")" 
-   else
-   if (name($step)="Arith") then
-              if ($step/values) then
-              let $cond1 := local:showCall(($step/values/partial/*)[1],$static)
-              let $cond2 := local:showCall(($step/values/partial/*)[2],$static)
-              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")" 
-              else    
-              let $cond1 := local:showCall(<epath>{($step/*)[1],$context}</epath>,$static)
-              let $cond2 := local:showCall(<epath>{($step/*)[2],$context}</epath>,$static)
-              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")"       
-   else 
-   if (name($step)="CmpN") then
-              if ($step/values) then
-              let $cond1 := local:showCall(($step/values/partial/*)[1],$static)
-              let $cond2 := local:showCall(($step/values/partial/*)[2],$static)
-              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")" 
-              else
-              let $cond1 := local:showCall(<epath>{($step/*)[1],$context}</epath>,$static)
-              let $cond2 := local:showCall(<epath>{($step/*)[2],$context}</epath>,$static)
-              return "(" || $cond1 || " " || $step/@op || " " || $cond2 || ")"            
-   else 
-   if (name($step)="And") then
-                 if ($step/values) then
-                 string-join(for-each($step/values/partial/*,
-                 function($x){local:showCall($x,$static)})," and ")      
-                 else 
-                 string-join(for-each($step/*,
-                 function($x){local:showCall(<epath>{$x,$context}</epath>,$static)})," and ")
-   else 
-   if (name($step)="Or") then
-           if ($step/values) then
-           string-join(for-each($step/values/partial/*,
-           function($x){local:showCall($x,$static)})," or ")  
-           else
-           string-join(for-each($step/*,
-           function($x){local:showCall(<epath>{$x,$context}</epath>,$static)})," or ")       
-   else    
-   if (name($step)="Empty") then"()"
-   else
-   if (name($step)="List") then
-             if ($step/values) then
-              "(" || 
-               string-join(for-each($step/values/partial/*,
-               function($x){local:showCall($x,$static)}),",")   || ")" 
-             else
-             "(" || string-join(for-each($step/*,
-             function($x){local:showCall(<epath>{$x,$context}</epath>,$static)}),",")   
-             || ")" 
-   else  
-   if ($step/@type="xs:string") then  "'" || data($step/@value)|| "'"
-   else
-   if ($step/@type) then data($step/@value)
-   else "()"
-}; 
-:)
-
 declare function local:printPath($epath,$static)
 {  
    let $step := ($epath/*)[1]
@@ -1272,8 +1066,7 @@ declare function local:printPath($epath,$static)
              if (empty($nodes)) then ["()"]
              else
              if (count($nodes)=1) then [$nodes]
-             else 
-             
+             else         
              ["(",
              fold-left($nodes,(),
              function($x,$y){
@@ -1285,11 +1078,10 @@ declare function local:printPath($epath,$static)
              <p>{
              <fun>{substring-before(data($step/@name),"("),"(",$args,")"}</fun>
              /node()
-             }</p>
-             
+             }</p>         
              else  
-             let $args := fold-left($step/*,(),function($exp){
-             ([local:printPath(<epath>{$exp,$context}</epath>,$static)/node()],',')})
+             let $args := fold-left($step/*,(),function($x,$y){
+             ([local:printPath(<epath>{$x,$context}</epath>,$static)/node()],',',$y)})
              return 
              <p>{substring-before(data($step/@name),"(") , "(" , $args , ")" }</p>
    else
@@ -1308,14 +1100,15 @@ declare function local:printPath($epath,$static)
              (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)}),")"],   
              (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)})
              return 
-             <p>{
-             <fun>{data($step/@name),"(",$args,")"}</fun>/node()
-           }</p>
+              <sf>
+               <fun>{data($step/@name)}</fun>,<args>{$args}</args></sf>
              else 
-             let $args := fold-left($step/*,(),function($exp){
-             ([local:printPath(<epath>{$exp,$context}</epath>,$static)/node()],',')})
+             let $args := fold-left($step/*,(),function($x,$y){
+             ([local:printPath(<epath>{$x,$context}</epath>,$static)/node()],',',$y)})
              return
-             <p>{data($step/@name) , "(" , $args , ")"}</p>
+             <sf>
+               <fun>{data($step/@name)}</fun>,<args>{$args}</args></sf>
+              
              
                       
    else 
@@ -1449,9 +1242,10 @@ declare function local:tcalls($function,$trace,$static)
        return
       <question nc ="{count($chs)+sum($chs/@nc)}">
       {$sc}
-        
+       
         
       <values>{$values}</values>
+       
        {
        $chs
        }
@@ -1471,6 +1265,9 @@ declare function local:tcalls($function,$trace,$static)
      function($x){local:tcalls($function,$x,$static)}))
   else ()
 };
+
+
+ 
 
 declare function local:naive_strategy($query)
 {
@@ -1502,33 +1299,64 @@ declare function local:first_small_path_strategy($query)
 
  
 
-local:naive_strategy("
-declare function local:title($last,$first)
+local:treecalls(function($x){$x},"
+declare function local:min($t)
 {
-   for $b in db:open('bstore1')/bib/book
-                where some $ba in $b/author 
-                      satisfies ($ba/last = $last and $ba/first=$first)
-                return $b/title
+   let $prices := db:open('prices')
+   let $p := $prices/prices/book[title = $t]/price
+   return min($p)
 };
 
-<results>
-  {
-    let $a := db:open('bstore1')//author
-    for $last in distinct-values($a/last),
-        $first in distinct-values($a[last=$last]/first)
-    order by $last, $first
-    return
-        <result>
-            <author>
-               <last>{ $last }</last>
-               <first>{ $first }</first>
-            </author>
-            {
-               local:title($last,$first)
-            }
-        </result>
-  }
-</results>                                    
+declare function local:store($t,$p)
+{
+   let $prices := db:open('prices')
+   let $p := $prices/prices/book[title = $t and price=$p]
+   return $p/source
+};
+
+
+declare function local:min_price($t)
+{
+      let $min := local:min($t)
+      return
+      <minprice title='{$t}'>
+         {local:store($t,$min)}
+         <price>{local:min($t)}</price>
+      </minprice>
+};
+
+declare function local:rate($rates)
+{
+ let $n := count($rates)
+ return sum($rates) div $n
+};
+
+declare function local:data($t)
+{
+ for $b in db:open('bstore')/bstore/book[title=$t]
+ let $mr := local:rate($b/rate)
+ where  $mr > 7
+        return
+        if ($b[editor]) then ($b/editor,$b/publisher,<mrate>{$mr}</mrate>)
+        else
+          ($b/author[position()<=1],$b/publisher,<mrate>{$mr}</mrate>)
+};
+
+<bib>
+{
+
+let $mylist := db:open('mylist')
+for $t in distinct-values($mylist/mylist/title)
+let $d := local:data($t)
+where exists($d)
+return
+<book>{
+$d,
+local:min_price($t)
+}
+</book>
+}
+</bib>                                      
  "    
   )
  
