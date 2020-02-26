@@ -1075,15 +1075,15 @@ declare function local:printPath($epath,$static)
              ")"],   
              (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)})
              return 
-             <p>{
+             <sf>{
              <fun>{substring-before(data($step/@name),"("),"(",$args,")"}</fun>
              /node()
-             }</p>         
+             }</sf>         
              else  
              let $args := fold-left($step/*,(),function($x,$y){
              ([local:printPath(<epath>{$x,$context}</epath>,$static)/node()],',',$y)})
              return 
-             <p>{substring-before(data($step/@name),"(") , "(" , $args , ")" }</p>
+             <sf>{substring-before(data($step/@name),"(") , "(" , $args , ")" }</sf>
    else
    if (name($step)="StaticFuncCall")  then 
              if ($step/../../values) then
@@ -1101,13 +1101,13 @@ declare function local:printPath($epath,$static)
              (),function($x,$y){if (empty($x)) then $y else ($x,",",$y)})
              return 
               <sf>
-               <fun>{data($step/@name)}</fun>,<args>{$args}</args></sf>
+               <fun>{data($step/@name)}</fun><args>{$args}</args></sf>
              else 
              let $args := fold-left($step/*,(),function($x,$y){
-             ([local:printPath(<epath>{$x,$context}</epath>,$static)/node()],',',$y)})
+             ([local:printPath(<epath>{$x,$context}</epath>,$static)/node()],",",$y)})
              return
              <sf>
-               <fun>{data($step/@name)}</fun>,<args>{$args}</args></sf>
+               <fun>{data($step/@name)}</fun><args>{$args}</args></sf>
               
              
                       
@@ -1242,10 +1242,15 @@ declare function local:tcalls($function,$trace,$static)
        return
       <question nc ="{count($chs)+sum($chs/@nc)}">
       {$sc}
-       
-        
-      <values>{$values}</values>
-       
+      
+      { 
+      if (not ($values="")) then
+      if (count($values)=1 and name($values)="root") then
+      <values>{$values/node()}</values>
+      else <values>{$values}</values>
+      else <values>{$values}</values>
+      }
+      
        {
        $chs
        }
@@ -1328,14 +1333,14 @@ declare function local:min_price($t)
 declare function local:rate($rates)
 {
  let $n := count($rates)
- return sum($rates) div $n
+ return sum($rates)
 };
 
 declare function local:data($t)
 {
  for $b in db:open('bstore')/bstore/book[title=$t]
  let $mr := local:rate($b/rate)
- where  $mr > 7
+ where  $mr > 5
         return
         if ($b[editor]) then ($b/editor,$b/publisher,<mrate>{$mr}</mrate>)
         else
@@ -1356,7 +1361,7 @@ local:min_price($t)
 }
 </book>
 }
-</bib>                                      
+</bib>                                    
  "    
   )
  
