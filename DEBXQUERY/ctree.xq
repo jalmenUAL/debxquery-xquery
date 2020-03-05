@@ -1274,37 +1274,68 @@ declare function local:tcalls($function,$trace,$static)
 
  
 
-declare function local:naive_strategy($query)
+declare function local:naive($query)
 {
   local:treecalls(function($x){$x},$query)
 };
 
-declare function local:first_small_strategy($query)
+declare function local:first_paths($query)
 {
-  local:treecalls(function($x){for $ch in $x order by count($ch/values/node()) 
+  local:treecalls(function($x){($x[p],$x[sf])},$query)
+};
+
+declare function local:first_functions($query)
+{
+  local:treecalls(function($x){($x[sf],$x[p])},$query)
+};
+
+declare function local:only_functions($query)
+{
+  local:treecalls(function($x){($x[sf])},$query)
+};
+
+declare function local:heaviest_first($query)
+{
+  local:treecalls(function($x){for $ch in $x order by count($ch//question) descending return $ch},$query)
+};
+
+declare function local:lightest_result_first($query)
+{
+  local:treecalls(function($x){for $ch in $x order by count($ch/values//node()) 
 ascending return $ch},$query)
 };
 
-declare function local:first_path_strategy($query)
+
+declare function local:divide_query($query)
 {
-  local:treecalls(function($x){($x[p],$x[not(p)])},$query)
+  local:treecalls(function($x){
+             let $w := count($x//question)
+             let $m := $w div 2
+             let $bigger := 
+             (for $n in $x where count($n//question) > $m
+              order by count($n//question) descending return $n)
+             let $smaller := 
+             (for $n in $x where count($n//question) <= $m
+             order by count($n//question) descending
+             return $n)
+             let $pivot := head($smaller)
+             let $rest := tail($smaller)
+             return ($pivot,$rest,$bigger) 
+            },$query)
 };
 
-declare function local:first_biggest_strategy($query)
+declare function local:heaviest_functions_first($query)
 {
-  local:treecalls(function($x){for $ch in $x order by $ch/@nc descending return $ch  },$query)
+  local:treecalls(function($x){for $ch in $x order by count($ch//sf) descending return $ch},$query)
 };
 
-declare function local:first_small_path_strategy($query)
+declare function local:heaviest_paths_first($query)
 {
-  local:treecalls(function($x){(for $ch in $x where $ch[p] order by 
-  count($ch/values/node()) ascending return $ch,for $ch in $x where $ch[not(p)] order by 
-  count($ch/values/node()) ascending return $ch)},$query)
+  local:treecalls(function($x){for $ch in $x order by count($ch//p) descending return $ch},$query)
 };
-
  
 
-local:treecalls(function($x){$x},"
+local:treecalls(function($x){($x[sf])},"
 declare function local:min($t)
 {
    let $prices := db:open('prices')
@@ -1333,7 +1364,7 @@ declare function local:min_price($t)
 declare function local:rate($rates)
 {
  let $n := count($rates)
- return sum($rates)
+ return sum($rates) div $n
 };
 
 declare function local:data($t)
